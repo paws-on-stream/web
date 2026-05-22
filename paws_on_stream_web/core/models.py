@@ -61,7 +61,7 @@ class DisplayLog(models.Model):
     """Logs when a message was displayed on which device."""
 
     message = models.ForeignKey(
-        "messages.Message", on_delete=models.CASCADE, related_name="display_logs"
+        "streaming.Message", on_delete=models.CASCADE, related_name="display_logs"
     )
     device = models.ForeignKey(
         DisplayDevice, on_delete=models.CASCADE, related_name="display_logs"
