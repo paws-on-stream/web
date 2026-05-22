@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'streaming.middleware.ApiTokenMiddleware',
 ]
 
 ROOT_URLCONF = 'paws_on_stream_web.urls'
@@ -123,3 +124,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# API Authentication
+# Static token for Bot/Display auth — set via environment variable
+API_AUTH_TOKEN = config('API_AUTH_TOKEN', default='')
