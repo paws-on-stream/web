@@ -1,6 +1,8 @@
 import factory
 from  django.utils import timezone
-from core.models import Settings, DisplayDevice
+from core.models import Settings, DisplayDevice, DisplayLog
+from streaming.factories import MessageFactory
+from streaming.models import Message
 
 class SettingsFactory(factory.django.DjangoModelFactory):
     """Erzeugt ein Settings‑Objekt mit allen Default‑Werten."""
@@ -31,3 +33,11 @@ class DisplayDeviceFactory(factory.django.DjangoModelFactory):
 
     device_id = factory.Sequence(lambda n: f"dev-{n:04d}")
     hostname = factory.Faker("hostname")
+
+class DisplayLogFactory(factory.django.DjangoModelFactory):
+    """Erzeugt ein Display Log-Objekt mit sinnvollen Werten."""
+    class Meta:
+        model = DisplayLog
+
+    device = factory.SubFactory(DisplayDeviceFactory)
+    message = factory.SubFactory(MessageFactory)
