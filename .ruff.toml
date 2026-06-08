@@ -1,0 +1,13 @@
+target-version = "py312"
+line-length = 88
+
+[lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+ignore = []
