@@ -1,5 +1,8 @@
+from datetime import datetime
+
+from django.db import IntegrityError
 from django.test import TestCase
-from core.models import Settings
+from core.models import Settings, DisplayDevice
 from django.core.exceptions import ValidationError
 
 # Create your tests here.
@@ -62,3 +65,40 @@ class SettingsModelTest(TestCase):
         self.assertEqual(str(s), "Application Settings")
 
 
+class DisplayDeviceModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.displayDevice = DisplayDevice.objects.create(device_id="test-device", hostname="test-device")
+
+    def test_str_returns_human_readable(self):
+        self.assertEqual(str(self.displayDevice), f"{self.displayDevice.hostname} ({self.displayDevice.device_id})")
+
+    def test_defaults_are_set(self):
+        self.assertTrue(self.displayDevice.is_active)
+        self.assertIsNone(self.displayDevice.location)
+        self.assertIsNone(self.displayDevice.last_seen)
+
+    def test_device_id_is_unique(self):
+        with self.assertRaises(IntegrityError):
+            DisplayDevice.objects.create(device_id="test-device", hostname="test-device")
+
+    def test_null_and_blank_fields(self):
+        self.displayDevice.location = None
+        self.displayDevice.last_seen = None
+        self.displayDevice.full_clean()
+        self.displayDevice.save()
+        self.assertIsNone(self.displayDevice.location)
+        self.assertIsNone(self.displayDevice.last_seen)
+
+    def test_ordering_by_device_id(self):
+        DisplayDevice.objects.create(device_id="test-device2", hostname="test-device")
+        DisplayDevice.objects.create(device_id="test-device3", hostname="test-device")
+        DisplayDevice.objects.create(device_id="test-device4", hostname="test-device")
+
+        ids = list(DisplayDevice.objects.all().values_list("device_id", flat=True))
+        self.assertEqual(ids, sorted(ids))
+
+    def test_last_seen_validation(self):
+        self.displayDevice.last_seen = "not a datetime"
+        with self.assertRaises(ValidationError):
+            self.displayDevice.full_clean()
