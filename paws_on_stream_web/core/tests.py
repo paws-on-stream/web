@@ -106,6 +106,24 @@ class DisplayDeviceModelTest(TestCase):
         with self.assertRaises(ValidationError):
             self.displayDevice.full_clean()
 
+    def test_max_length_device_id(self):
+        d = DisplayDeviceFactory()
+        d.device_id = "x" * 33
+        with self.assertRaises(ValidationError):
+            d.full_clean()
+
+    def test_max_length_hostname(self):
+        d = DisplayDeviceFactory()
+        d.hostname = "x" * 129
+        with self.assertRaises(ValidationError):
+            d.full_clean()
+
+    def test_max_length_location(self):
+        d = DisplayDeviceFactory()
+        d.location = "x" * 65
+        with self.assertRaises(ValidationError):
+            d.full_clean()
+
 class DisplayLogModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -144,3 +162,10 @@ class DisplayLogModelTest(TestCase):
         self.displayLog.device.delete()
         with self.assertRaises(DisplayLog.DoesNotExist):
             DisplayLog.objects.get(pk=log_pk)
+
+    def test_related_name_access(self):
+        log2 = DisplayLogFactory(message=self.displayLog.message)
+        logs = self.displayLog.message.display_logs.all()
+        self.assertEqual(logs.count(), 2)
+        self.assertIn(self.displayLog, logs)
+        self.assertIn(log2, logs)
