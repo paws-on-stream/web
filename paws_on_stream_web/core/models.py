@@ -54,7 +54,7 @@ class DisplayDevice(models.Model):
         ordering = ["device_id"]
 
     def __str__(self):
-        return f"{self.device_id} ({self.hostname})"
+        return f"{self.hostname} ({self.device_id})"
 
 
 class DisplayLog(models.Model):
