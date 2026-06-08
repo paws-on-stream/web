@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.db import IntegrityError
 from django.test import TestCase
-from core.models import Settings, DisplayDevice
+from core.models import Settings, DisplayDevice, DisplayLog
 from django.core.exceptions import ValidationError
-from core.factories import SettingsFactory, DisplayDeviceFactory
+from core.factories import SettingsFactory, DisplayDeviceFactory, DisplayLogFactory
+
 
 # Create your tests here.
 
@@ -104,3 +105,42 @@ class DisplayDeviceModelTest(TestCase):
         self.displayDevice.last_seen = "not a datetime"
         with self.assertRaises(ValidationError):
             self.displayDevice.full_clean()
+
+class DisplayLogModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.displayLog = DisplayLogFactory()
+
+    def test_str_returns_human_readable(self):
+        self.assertEqual(str(self.displayLog), f"{self.displayLog.message.participant.display_name} on {self.displayLog.device.device_id} at {self.displayLog.displayed_at}")
+
+    def test_displayed_at_is_set_on_create(self):
+        now = datetime.now(tz=timezone.utc)
+        log = DisplayLogFactory()
+        self.assertIsNotNone(log.displayed_at)
+        # Das Feld darf **nicht** vor dem Erstellzeitpunkt liegen
+        self.assertGreaterEqual(log.displayed_at, now)
+
+    def test_display_duration_can_be_null(self):
+        log = DisplayLogFactory(display_duration_actual=None)
+        log.full_clean()   # darf keinen ValidationError werfen
+        self.assertIsNone(log.display_duration_actual)
+
+    def test_display_duration_must_be_integer(self):
+        log = DisplayLogFactory()
+        log.display_duration_actual = "not-an-int"
+        with self.assertRaises(ValidationError):
+            log.full_clean()
+
+    def test_cascade_delete_message(self):
+        log_pk = self.displayLog.pk
+        self.displayLog.message.delete()
+        # Der Log muss jetzt weg sein -> DoesNotExist
+        with self.assertRaises(DisplayLog.DoesNotExist):
+            DisplayLog.objects.get(pk=log_pk)
+
+    def test_cascade_delete_device(self):
+        log_pk = self.displayLog.pk
+        self.displayLog.device.delete()
+        with self.assertRaises(DisplayLog.DoesNotExist):
+            DisplayLog.objects.get(pk=log_pk)
