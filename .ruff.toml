@@ -9,5 +9,6 @@ select = [
     "I",      # isort
     "UP",     # pyupgrade
     "SIM",    # flake8-simplify
+    "DJ",     # flake8-django
 ]
 ignore = []
