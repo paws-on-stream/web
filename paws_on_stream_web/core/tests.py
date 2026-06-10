@@ -83,7 +83,7 @@ class DisplayDeviceModelTest(TestCase):
     def test_defaults_are_set(self):
         d = DisplayDeviceFactory(device_id="test-device2")
         self.assertTrue(d.is_active)
-        self.assertIsNone(d.location)
+        self.assertEqual(d.location, "")
         self.assertIsNone(d.last_seen)
 
     def test_device_id_is_unique(self):
@@ -93,11 +93,11 @@ class DisplayDeviceModelTest(TestCase):
             )
 
     def test_null_and_blank_fields(self):
-        self.displayDevice.location = None
+        self.displayDevice.location = ""
         self.displayDevice.last_seen = None
         self.displayDevice.full_clean()
         self.displayDevice.save()
-        self.assertIsNone(self.displayDevice.location)
+        self.assertEqual(self.displayDevice.location, "")
         self.assertIsNone(self.displayDevice.last_seen)
 
     def test_ordering_by_device_id(self):
@@ -165,7 +165,7 @@ class DisplayLogModelTest(TestCase):
     def test_cascade_delete_message(self):
         log_pk = self.displayLog.pk
         self.displayLog.message.delete()
-        # Der Log muss jetzt weg sein -> DoesNotExist
+        # Das Log muss jetzt weg sein -> DoesNotExist
         with self.assertRaises(DisplayLog.DoesNotExist):
             DisplayLog.objects.get(pk=log_pk)
 
