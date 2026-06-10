@@ -1,13 +1,14 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
-from core.models import Settings, DisplayDevice, DisplayLog
-from django.core.exceptions import ValidationError
-from core.factories import SettingsFactory, DisplayDeviceFactory, DisplayLogFactory
 
+from core.factories import DisplayDeviceFactory, DisplayLogFactory, SettingsFactory
+from core.models import DisplayDevice, DisplayLog, Settings
 
 # Create your tests here.
+
 
 class SettingsModelTest(TestCase):
     @classmethod
@@ -36,7 +37,6 @@ class SettingsModelTest(TestCase):
         self.assertIs(first.pk, second.pk)
         self.assertEqual(first.pk, 1)
         self.assertEqual(Settings.objects.count(), 1)
-
 
     def test_bot_status_choice_validation(self):
         s = Settings.objects.get(pk=1)
@@ -70,10 +70,15 @@ class SettingsModelTest(TestCase):
 class DisplayDeviceModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.displayDevice = DisplayDeviceFactory(device_id="test-device", hostname="test-device")
+        cls.displayDevice = DisplayDeviceFactory(
+            device_id="test-device", hostname="test-device"
+        )
 
     def test_str_returns_human_readable(self):
-        self.assertEqual(str(self.displayDevice), f"{self.displayDevice.hostname} ({self.displayDevice.device_id})")
+        self.assertEqual(
+            str(self.displayDevice),
+            f"{self.displayDevice.hostname} ({self.displayDevice.device_id})",
+        )
 
     def test_defaults_are_set(self):
         d = DisplayDeviceFactory(device_id="test-device2")
@@ -83,7 +88,9 @@ class DisplayDeviceModelTest(TestCase):
 
     def test_device_id_is_unique(self):
         with self.assertRaises(IntegrityError):
-            DisplayDevice.objects.create(device_id="test-device", hostname="test-device")
+            DisplayDevice.objects.create(
+                device_id="test-device", hostname="test-device"
+            )
 
     def test_null_and_blank_fields(self):
         self.displayDevice.location = None
@@ -124,16 +131,21 @@ class DisplayDeviceModelTest(TestCase):
         with self.assertRaises(ValidationError):
             d.full_clean()
 
+
 class DisplayLogModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.displayLog = DisplayLogFactory()
 
     def test_str_returns_human_readable(self):
-        self.assertEqual(str(self.displayLog), f"{self.displayLog.message.participant.display_name} on {self.displayLog.device.device_id} at {self.displayLog.displayed_at}")
+        self.assertEqual(
+            str(self.displayLog),
+            f"{self.displayLog.message.participant.display_name} on "
+            f"{self.displayLog.device.device_id} at {self.displayLog.displayed_at}",
+        )
 
     def test_displayed_at_is_set_on_create(self):
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         log = DisplayLogFactory()
         self.assertIsNotNone(log.displayed_at)
         # Das Feld darf **nicht** vor dem Erstellzeitpunkt liegen
@@ -141,7 +153,7 @@ class DisplayLogModelTest(TestCase):
 
     def test_display_duration_can_be_null(self):
         log = DisplayLogFactory(display_duration_actual=None)
-        log.full_clean()   # darf keinen ValidationError werfen
+        log.full_clean()  # darf keinen ValidationError werfen
         self.assertIsNone(log.display_duration_actual)
 
     def test_display_duration_must_be_integer(self):

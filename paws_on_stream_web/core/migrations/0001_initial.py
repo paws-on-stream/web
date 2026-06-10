@@ -5,64 +5,121 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('streaming', '0001_initial'),
+        ("streaming", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DisplayDevice',
+            name="DisplayDevice",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('device_id', models.CharField(max_length=32, unique=True)),
-                ('hostname', models.CharField(max_length=128)),
-                ('location', models.CharField(blank=True, max_length=64, null=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('last_seen', models.DateTimeField(blank=True, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("device_id", models.CharField(max_length=32, unique=True)),
+                ("hostname", models.CharField(max_length=128)),
+                ("location", models.CharField(blank=True, max_length=64, null=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("last_seen", models.DateTimeField(blank=True, null=True)),
             ],
             options={
-                'ordering': ['device_id'],
+                "ordering": ["device_id"],
             },
         ),
         migrations.CreateModel(
-            name='Settings',
+            name="Settings",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('rate_limit_per_minute', models.IntegerField(default=10)),
-                ('max_message_length', models.IntegerField(default=4096)),
-                ('bot_status', models.CharField(choices=[('online', 'Online'), ('offline', 'Offline'), ('maintenance', 'Maintenance')], default='online', max_length=16)),
-                ('overlay_theme', models.CharField(default='default', max_length=32)),
-                ('overlay_font_size', models.IntegerField(default=24)),
-                ('auto_approve', models.BooleanField(default=False)),
-                ('display_duration_sec', models.IntegerField(default=8)),
-                ('reg_api_url', models.URLField(blank=True)),
-                ('reg_api_key', models.CharField(blank=True, max_length=128)),
-                ('status_check_interval', models.IntegerField(default=300)),
-                ('require_event_active', models.BooleanField(default=True)),
-                ('display_mode', models.CharField(default='chat', max_length=16)),
-                ('scroll_speed_px', models.IntegerField(default=3)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("rate_limit_per_minute", models.IntegerField(default=10)),
+                ("max_message_length", models.IntegerField(default=4096)),
+                (
+                    "bot_status",
+                    models.CharField(
+                        choices=[
+                            ("online", "Online"),
+                            ("offline", "Offline"),
+                            ("maintenance", "Maintenance"),
+                        ],
+                        default="online",
+                        max_length=16,
+                    ),
+                ),
+                ("overlay_theme", models.CharField(default="default", max_length=32)),
+                ("overlay_font_size", models.IntegerField(default=24)),
+                ("auto_approve", models.BooleanField(default=False)),
+                ("display_duration_sec", models.IntegerField(default=8)),
+                ("reg_api_url", models.URLField(blank=True)),
+                ("reg_api_key", models.CharField(blank=True, max_length=128)),
+                ("status_check_interval", models.IntegerField(default=300)),
+                ("require_event_active", models.BooleanField(default=True)),
+                ("display_mode", models.CharField(default="chat", max_length=16)),
+                ("scroll_speed_px", models.IntegerField(default=3)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Setting',
-                'verbose_name_plural': 'Settings',
+                "verbose_name": "Setting",
+                "verbose_name_plural": "Settings",
             },
         ),
         migrations.CreateModel(
-            name='DisplayLog',
+            name="DisplayLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('displayed_at', models.DateTimeField(auto_now_add=True)),
-                ('display_duration_actual', models.IntegerField(blank=True, null=True)),
-                ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='display_logs', to='core.displaydevice')),
-                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='display_logs', to='streaming.message')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("displayed_at", models.DateTimeField(auto_now_add=True)),
+                ("display_duration_actual", models.IntegerField(blank=True, null=True)),
+                (
+                    "device",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="display_logs",
+                        to="core.displaydevice",
+                    ),
+                ),
+                (
+                    "message",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="display_logs",
+                        to="streaming.message",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-displayed_at'],
-                'indexes': [models.Index(fields=['message', 'displayed_at'], name='core_displa_message_477d06_idx'), models.Index(fields=['device', 'displayed_at'], name='core_displa_device__0189db_idx')],
+                "ordering": ["-displayed_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["message", "displayed_at"],
+                        name="core_displa_message_477d06_idx",
+                    ),
+                    models.Index(
+                        fields=["device", "displayed_at"],
+                        name="core_displa_device__0189db_idx",
+                    ),
+                ],
             },
         ),
     ]

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from .models import Settings, DisplayDevice, DisplayLog
+from .models import DisplayDevice, DisplayLog, Settings
 
 
 @admin.register(Settings)
@@ -10,8 +10,30 @@ class SettingsAdmin(admin.ModelAdmin):
     """Admin for singleton application settings."""
 
     fieldsets = (
-        ("Bot Configuration", {"fields": ("bot_status", "rate_limit_per_minute", "max_message_length", "auto_approve", "require_event_active")}),
-        ("Display Settings", {"fields": ("display_mode", "overlay_theme", "overlay_font_size", "display_duration_sec", "scroll_speed_px")}),
+        (
+            "Bot Configuration",
+            {
+                "fields": (
+                    "bot_status",
+                    "rate_limit_per_minute",
+                    "max_message_length",
+                    "auto_approve",
+                    "require_event_active",
+                )
+            },
+        ),
+        (
+            "Display Settings",
+            {
+                "fields": (
+                    "display_mode",
+                    "overlay_theme",
+                    "overlay_font_size",
+                    "display_duration_sec",
+                    "scroll_speed_px",
+                )
+            },
+        ),
         ("Registration API", {"fields": ("reg_api_url", "reg_api_key")}),
         ("System", {"fields": ("status_check_interval", "updated_at")}),
     )
@@ -39,11 +61,17 @@ class DisplayDeviceAdmin(admin.ModelAdmin):
 
 @admin.register(DisplayLog)
 class DisplayLogAdmin(admin.ModelAdmin):
-    list_display = ("message_preview", "device", "displayed_at", "display_duration_actual")
+    list_display = (
+        "message_preview",
+        "device",
+        "displayed_at",
+        "display_duration_actual",
+    )
     list_filter = ("displayed_at",)
     search_fields = ("message__participant__display_name",)
     readonly_fields = ("message", "device", "displayed_at", "display_duration_actual")
 
     def message_preview(self, obj):
         return f"{obj.message.participant.display_name}: {obj.message.content[:50]}"
+
     message_preview.short_description = "Message"

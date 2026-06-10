@@ -12,9 +12,7 @@ class Settings(models.Model):
 
     rate_limit_per_minute = models.IntegerField(default=10)
     max_message_length = models.IntegerField(default=4096)
-    bot_status = models.CharField(
-        max_length=16, choices=BOT_STATUSES, default="online"
-    )
+    bot_status = models.CharField(max_length=16, choices=BOT_STATUSES, default="online")
     overlay_theme = models.CharField(max_length=32, default="default")
     overlay_font_size = models.IntegerField(default=24)
     auto_approve = models.BooleanField(default=False)
@@ -46,7 +44,7 @@ class DisplayDevice(models.Model):
 
     device_id = models.CharField(max_length=32, unique=True)
     hostname = models.CharField(max_length=128)
-    location = models.CharField(max_length=64, null=True, blank=True)
+    location = models.CharField(max_length=64, default="", blank=True)
     is_active = models.BooleanField(default=True)
     last_seen = models.DateTimeField(null=True, blank=True)
 
