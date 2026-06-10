@@ -14,7 +14,7 @@ class Event(models.Model):
     allow_messages = models.BooleanField(default=True)
     display_mode = models.CharField(
         max_length=16,
-        null=True,
+        default="",
         blank=True,
         help_text="chat or crawling. null = use global setting",
     )
@@ -62,16 +62,16 @@ class Message(models.Model):
         "participants.Participant", on_delete=models.CASCADE, related_name="messages"
     )
     content = models.TextField(max_length=4096)
-    raw_content = models.TextField(null=True, blank=True)
+    raw_content = models.TextField(default="", blank=True)
     media_type = models.CharField(
-        max_length=16, choices=MEDIA_TYPES, null=True, blank=True
+        max_length=16, choices=MEDIA_TYPES, default="", blank=True
     )
-    media_url = models.URLField(null=True, blank=True)
-    sticker_emoji = models.CharField(max_length=64, null=True, blank=True)
+    media_url = models.URLField(default="", blank=True)
+    sticker_emoji = models.CharField(max_length=64, default="", blank=True)
     spam_score = models.IntegerField(default=0)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="pending")
     rejection_reason = models.CharField(
-        max_length=32, choices=REJECTION_REASONS, null=True, blank=True
+        max_length=32, choices=REJECTION_REASONS, default="", blank=True
     )
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
