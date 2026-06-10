@@ -4,40 +4,66 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('streaming', '0001_initial'),
+        ("streaming", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='event',
-            name='display_mode',
-            field=models.CharField(blank=True, default='', help_text='chat or crawling. null = use global setting', max_length=16),
+            model_name="event",
+            name="display_mode",
+            field=models.CharField(
+                blank=True,
+                default="",
+                help_text="chat or crawling. null = use global setting",
+                max_length=16,
+            ),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='media_type',
-            field=models.CharField(blank=True, choices=[('text', 'Text'), ('photo', 'Photo'), ('gif', 'GIF'), ('sticker', 'Sticker')], default='', max_length=16),
+            model_name="message",
+            name="media_type",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("text", "Text"),
+                    ("photo", "Photo"),
+                    ("gif", "GIF"),
+                    ("sticker", "Sticker"),
+                ],
+                default="",
+                max_length=16,
+            ),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='media_url',
-            field=models.URLField(blank=True, default=''),
+            model_name="message",
+            name="media_url",
+            field=models.URLField(blank=True, default=""),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='raw_content',
-            field=models.TextField(blank=True, default=''),
+            model_name="message",
+            name="raw_content",
+            field=models.TextField(blank=True, default=""),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='rejection_reason',
-            field=models.CharField(blank=True, choices=[('no_event', 'No active event'), ('unknown', 'Unknown participant'), ('not_checkedin', 'Not checked in'), ('banned', 'Banned'), ('rate_limit', 'Rate limited'), ('offline', 'Bot offline')], default='', max_length=32),
+            model_name="message",
+            name="rejection_reason",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("no_event", "No active event"),
+                    ("unknown", "Unknown participant"),
+                    ("not_checkedin", "Not checked in"),
+                    ("banned", "Banned"),
+                    ("rate_limit", "Rate limited"),
+                    ("offline", "Bot offline"),
+                ],
+                default="",
+                max_length=32,
+            ),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='sticker_emoji',
-            field=models.CharField(blank=True, default='', max_length=64),
+            model_name="message",
+            name="sticker_emoji",
+            field=models.CharField(blank=True, default="", max_length=64),
         ),
     ]
