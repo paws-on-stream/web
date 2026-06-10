@@ -17,18 +17,18 @@ class ApiTokenMiddleware:
 
     def __call__(self, request):
         # Only enforce on /api/ paths
-        if not request.path.startswith('/api/'):
+        if not request.path.startswith("/api/"):
             return self.get_response(request)
 
         # Skip OPTIONS (CORS preflight)
-        if request.method == 'OPTIONS':
+        if request.method == "OPTIONS":
             return self.get_response(request)
 
-        token = request.headers.get('X-API-Token')
+        token = request.headers.get("X-API-Token")
         if not token or token != settings.API_AUTH_TOKEN:
             return HttpResponseForbidden(
                 '{"error": "Invalid or missing API token"}',
-                content_type='application/json'
+                content_type="application/json",
             )
 
         return self.get_response(request)

@@ -69,9 +69,7 @@ class Message(models.Model):
     media_url = models.URLField(null=True, blank=True)
     sticker_emoji = models.CharField(max_length=64, null=True, blank=True)
     spam_score = models.IntegerField(default=0)
-    status = models.CharField(
-        max_length=16, choices=STATUS_CHOICES, default="pending"
-    )
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="pending")
     rejection_reason = models.CharField(
         max_length=32, choices=REJECTION_REASONS, null=True, blank=True
     )
