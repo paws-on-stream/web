@@ -1,8 +1,9 @@
-import factory
-from datetime import timezone, datetime
+from datetime import UTC, datetime
 
+import factory
 from participants.factories import ParticipantFactory
-from streaming.models import Message, Event
+
+from streaming.models import Event, Message
 
 
 class EventFactory(factory.django.DjangoModelFactory):
@@ -13,14 +14,14 @@ class EventFactory(factory.django.DjangoModelFactory):
     name = factory.Faker("domain_word")
     starts_at = factory.Faker(
         "date_time_between",
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
         start_date="-12h",
-        end_date=datetime.now(tz=timezone.utc),
+        end_date=datetime.now(tz=UTC),
     )
     ends_at = factory.Faker(
         "date_time_between",
-        tzinfo=timezone.utc,
-        start_date=datetime.now(tz=timezone.utc),
+        tzinfo=UTC,
+        start_date=datetime.now(tz=UTC),
         end_date="+12h",
     )
 

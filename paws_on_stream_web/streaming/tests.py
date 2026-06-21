@@ -96,7 +96,10 @@ class ApiTokenMiddlewareTest(TestCase):
         kwargs = {}
         if token is not None:
             kwargs["HTTP_X_API_TOKEN"] = token
-        request = self.factory.get(path, **kwargs) if method == "GET" else self.factory.generic(method, path, **kwargs)
+        if method == "GET":
+            request = self.factory.get(path, **kwargs)
+        else:
+            request = self.factory.generic(method, path, **kwargs)
 
         def get_response(r):
             return HttpResponse(b'{"ok": true}', content_type="application/json")
