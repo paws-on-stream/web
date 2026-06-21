@@ -12,6 +12,8 @@ class SettingsFactory(factory.django.DjangoModelFactory):
         # Wir wollen explizit **nicht** das PK‑Handling von get_settings überschreiben.
         django_get_or_create = ("id",)
 
+    id = 1
+
     rate_limit_per_minute = 10
     max_message_length = 4096
     bot_status = "online"
