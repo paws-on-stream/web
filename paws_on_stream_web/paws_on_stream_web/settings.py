@@ -124,3 +124,9 @@ STATIC_URL = "static/"
 # API Authentication
 # Static token for Bot/Display auth — set via environment variable
 API_AUTH_TOKEN = config("API_AUTH_TOKEN", default="")
+
+# DRF configuration
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+}
