@@ -10,10 +10,16 @@ from core.models import DisplayDevice, Settings
 TEST_TOKEN = "test-api-token"
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class SettingsViewTest(APITestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()  # Clear throttle counters from prior test classes
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        # Delete stale Settings from other test classes so SettingsFactory()
+        # creates a fresh instance with defaults instead of returning a
+        # modified one via get_or_create.
+        Settings.objects.all().delete()
         self.settings = SettingsFactory()
 
     def test_retrieve_settings(self):
@@ -45,7 +51,7 @@ class SettingsViewTest(APITestCase):
         assert Settings.objects.count() == 1
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class DisplayDeviceListViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
@@ -67,7 +73,7 @@ class DisplayDeviceListViewTest(APITestCase):
         assert "last_seen" in device
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class DisplayDeviceCreateViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
@@ -85,7 +91,7 @@ class DisplayDeviceCreateViewTest(APITestCase):
         assert DisplayDevice.objects.filter(device_id="pi-new-001").exists()
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class DisplayDeviceRegisterActionTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
@@ -125,7 +131,7 @@ class DisplayDeviceRegisterActionTest(APITestCase):
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class DisplayLogListViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)

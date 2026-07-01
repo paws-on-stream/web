@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from django.core.cache import cache
 from django.test import override_settings
 from participants.factories import ParticipantFactory
 from rest_framework import status
@@ -10,10 +11,11 @@ from streaming.factories import EventFactory, TextMessageFactory
 TEST_TOKEN = "test-api-token"
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class EventListViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.events = EventFactory.create_batch(3)
 
     def test_list_events(self):
@@ -34,10 +36,11 @@ class EventListViewTest(APITestCase):
         assert "scroll_speed_px" in event
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class EventRetrieveViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.event = EventFactory()
 
     def test_retrieve_event(self):
@@ -51,10 +54,11 @@ class EventRetrieveViewTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageListViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
         self.event = EventFactory()
 
@@ -89,10 +93,11 @@ class MessageListViewTest(APITestCase):
         assert len(response.json()["results"]) == 3
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageCreateViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
         self.event = EventFactory()
 
@@ -108,10 +113,11 @@ class MessageCreateViewTest(APITestCase):
         assert response.json()["status"] == "pending"
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageApproveActionTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
         self.message = TextMessageFactory(
             participant=self.participant,
@@ -137,10 +143,11 @@ class MessageApproveActionTest(APITestCase):
         assert "already" in response.json()["status"][0].lower()
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageRejectActionTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
         self.message = TextMessageFactory(
             participant=self.participant,
@@ -166,10 +173,11 @@ class MessageRejectActionTest(APITestCase):
         assert response.json()["rejection_reason"] == "no_event"
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageDisplayActionTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
         self.message = TextMessageFactory(
             participant=self.participant,
@@ -187,7 +195,7 @@ class MessageDisplayActionTest(APITestCase):
         assert self.message.displayed_at is not None
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageViewSetAuthTest(APITestCase):
     def test_forbidden_without_token(self):
         response = self.client.get("/api/v1/messages/")
@@ -195,5 +203,6 @@ class MessageViewSetAuthTest(APITestCase):
 
     def test_list_with_token(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         response = self.client.get("/api/v1/messages/")
         assert response.status_code == status.HTTP_200_OK

@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -8,10 +9,11 @@ from participants.models import Participant
 TEST_TOKEN = "test-api-token"
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class ParticipantListViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participants = ParticipantFactory.create_batch(3)
 
     def test_list_participants(self):
@@ -32,10 +34,11 @@ class ParticipantListViewTest(APITestCase):
         assert "updated_at" in participant
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class ParticipantRetrieveViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
 
     def test_retrieve_participant(self):
@@ -49,10 +52,11 @@ class ParticipantRetrieveViewTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class ParticipantCreateViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
 
     def test_create_participant(self):
         data = {
@@ -78,10 +82,11 @@ class ParticipantCreateViewTest(APITestCase):
         assert "display_name" in response.json()
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class ParticipantUpdateViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
 
     def test_partial_update(self):
@@ -116,10 +121,11 @@ class ParticipantUpdateViewTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN)
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class ParticipantDeleteViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
         self.participant = ParticipantFactory()
 
     def test_delete_participant(self):

@@ -89,7 +89,13 @@ class ApiTokenMiddlewareTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls._original_token = settings.API_AUTH_TOKEN
         settings.API_AUTH_TOKEN = cls.TOKEN
+
+    @classmethod
+    def tearDownClass(cls):
+        settings.API_AUTH_TOKEN = cls._original_token
+        super().tearDownClass()
 
     def _response(self, path, method="GET", token=None):
         """Helper to build a request through middleware and return HttpResponse."""
