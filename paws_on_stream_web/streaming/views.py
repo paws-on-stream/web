@@ -1,11 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
+from core.models import DisplayDevice, DisplayLog, Settings
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.models import DisplayDevice, DisplayLog, Settings
 from streaming.models import Event, Message
 from streaming.sanitization import sanitize_content
 from streaming.serializers import EventSerializer, MessageSerializer
@@ -55,7 +55,12 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = self.get_object()
         if message.status != "pending":
             return Response(
-                {"status": [f"Message is already '{message.status}' — only pending messages can be approved."]},
+                {
+                    "status": [
+                        f"Message is already '{message.status}'"
+                        "— only pending messages can be approved."
+                    ]
+                },
                 status=400,
             )
         message.status = "approved"
@@ -71,14 +76,23 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = self.get_object()
         if message.status != "pending":
             return Response(
-                {"status": [f"Message is already '{message.status}' — only pending messages can be rejected."]},
+                {
+                    "status": [
+                        f"Message is already '{message.status}'"
+                        "— only pending messages can be rejected."
+                    ]
+                },
                 status=400,
             )
         reason = request.data.get("rejection_reason", "unknown")
         valid_reasons = [choice[0] for choice in Message.REJECTION_REASONS]
         if reason not in valid_reasons:
             return Response(
-                {"rejection_reason": [f"Invalid reason. Must be one of: {valid_reasons}"]},
+                {
+                    "rejection_reason": [
+                        f"Invalid reason. Must be one of: {valid_reasons}"
+                    ]
+                },
                 status=400,
             )
         message.status = "rejected"
@@ -93,7 +107,12 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = self.get_object()
         if message.status != "approved":
             return Response(
-                {"status": [f"Message is '{message.status}' — only approved messages can be displayed."]},
+                {
+                    "status": [
+                        f"Message is '{message.status}'"
+                        "— only approved messages can be displayed."
+                    ]
+                },
                 status=400,
             )
         message.status = "displayed"
@@ -117,9 +136,9 @@ class MessageViewSet(viewsets.ModelViewSet):
         if device_id:
             device = DisplayDevice.objects.filter(device_id=device_id).first()
             if device:
-                displayed_ids = DisplayLog.objects.filter(
-                    device=device
-                ).values_list("message_id", flat=True)
+                displayed_ids = DisplayLog.objects.filter(device=device).values_list(
+                    "message_id", flat=True
+                )
                 messages = messages.exclude(id__in=displayed_ids)
 
         page = self.paginate_queryset(messages)
@@ -151,15 +170,17 @@ class MessageViewSet(viewsets.ModelViewSet):
                 "remaining_seconds": round(remaining, 1),
             }
 
-        return Response({
-            "pending_count": Message.objects.filter(status="pending").count(),
-            "bot_status": settings.bot_status,
-            "active_event": event_info,
-            "messages_rate": round(
-                Message.objects.filter(created_at__gte=five_min_ago).count() / 5,
-                2,
-            ),
-        })
+        return Response(
+            {
+                "pending_count": Message.objects.filter(status="pending").count(),
+                "bot_status": settings.bot_status,
+                "active_event": event_info,
+                "messages_rate": round(
+                    Message.objects.filter(created_at__gte=five_min_ago).count() / 5,
+                    2,
+                ),
+            }
+        )
 
     # --- POST /{id}/displayed/: display feedback --------------------------------
 

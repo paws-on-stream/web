@@ -18,7 +18,9 @@ class UserRateThrottle(SimpleRateThrottle):
         if request.user and not request.user.is_anonymous:
             return f"pows:ratelimit:{request.user.telegram_id}"
         # Fall back to extracting telegram_id from request body (POST /message/)
-        telegram_id = request.data.get("telegram_id") if isinstance(request.data, dict) else None
+        telegram_id = (
+            request.data.get("telegram_id") if isinstance(request.data, dict) else None
+        )
         if telegram_id:
             return f"pows:ratelimit:{telegram_id}"
         # Fallback to IP
@@ -31,5 +33,8 @@ def get_throttle_rate(request):
     Returns the telegram_id from the request body so the throttle key
     function can extract it.
     """
-    telegram_id = request.data.get("telegram_id") if isinstance(request.data, dict) else None
+    if isinstance(request.data, dict):
+        telegram_id = request.data.get("telegram_id")
+    else:
+        telegram_id = None
     return telegram_id

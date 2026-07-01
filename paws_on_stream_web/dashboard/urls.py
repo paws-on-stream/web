@@ -1,5 +1,6 @@
-from dashboard.views import ParticipantsView, EventsView, SettingsView
 from django.urls import path
+
+from dashboard.views import EventsView, ParticipantsView, SettingsView
 
 app_name = "dashboard"
 

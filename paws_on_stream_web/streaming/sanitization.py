@@ -2,7 +2,6 @@
 
 import re
 
-
 # Zero-width Unicode characters
 ZERO_WIDTH_CHARS = re.compile(r"[\u200b\u200c\u200d\ufeff\u2060]+")
 

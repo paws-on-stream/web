@@ -18,6 +18,8 @@ Including another URLconf
 from core.views import DisplayDeviceViewSet, DisplayLogViewSet, SettingsViewSet
 from dashboard.views import (
     dashboard as dashboard_view,
+)
+from dashboard.views import (
     devices_page,
     events_page,
     kpi_endpoint,

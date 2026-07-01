@@ -2,12 +2,11 @@
 
 from datetime import timedelta
 
+from core.models import DisplayDevice, Settings
 from django.shortcuts import render
 from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
-from core.models import Settings
 from streaming.models import Event, Message
 from streaming.serializers import MessageSerializer
 
@@ -19,7 +18,9 @@ def dashboard(request):
 
     settings = Settings.get_settings()
     pending_count = Message.objects.filter(status="pending").count()
-    messages_rate = round(Message.objects.filter(created_at__gte=five_min_ago).count() / 5, 1)
+    messages_rate = round(
+        Message.objects.filter(created_at__gte=five_min_ago).count() / 5, 1
+    )
 
     active_event = Event.objects.filter(
         is_active=True, starts_at__lte=now, ends_at__gte=now
