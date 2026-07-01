@@ -27,6 +27,8 @@ jobs:
           poetry-version: main
       - name: Install dependencies
         run: poetry install --with dev
+      - name: Copy dev .env
+        run: cp -f dev/.env .env
       - name: Run django migrations
         run: poetry run paws_on_stream_web/manage.py migrate --no-input
       - name: Run django tests
