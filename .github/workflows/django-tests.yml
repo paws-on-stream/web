@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v7
+      - name: Install pipx
+        run: python3 -m pip install pipx
       - uses: abatilo/actions-poetry@v3
         with:
           poetry-version: main
