@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
                     "scroll_speed_px",
                     models.IntegerField(
                         blank=True,
-                        help_text="Pixels per frame in crawling mode. null = use global setting",
+                        help_text="Pixels per frame in crawling mode. null = use global setting",  # noqa: E501
                         null=True,
                     ),
                 ),
