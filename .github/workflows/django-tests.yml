@@ -32,4 +32,4 @@ jobs:
       - name: Run django migrations
         run: /github/home/.local/bin/poetry run paws_on_stream_web/manage.py migrate --no-input
       - name: Run django tests
-        run: /github/home/.local/bin/poetry run paws_on_stream_web/manage.py test
+        run: /github/home/.local/bin/poetry run paws_on_stream_web/manage.py test paws_on_stream_web
