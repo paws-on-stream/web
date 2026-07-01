@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Paws on Stream{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaahl/chota@0.9.0/dist/chota.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaahl/chota@0.9.0/dist/chota-dark.min.css">
+    <style>
+        body { margin: 0; }
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; background: var(--gray-900); padding: 1rem;
+            flex-shrink: 0; border-right: 1px solid var(--gray-800);
+        }
+        .sidebar a {
+            display: block; padding: 0.6rem 0.8rem; color: var(--gray-400);
+            text-decoration: none; border-radius: var(--radius-sm); margin-bottom: 0.25rem;
+        }
+        .sidebar a:hover { background: var(--gray-800); color: var(--gray-200); }
+        .sidebar a.active { background: var(--blue-500); color: #fff; }
+        .sidebar .logo {
+            font-size: 1.2rem; font-weight: 600; color: var(--gray-100);
+            padding: 0.5rem 0.8rem; margin-bottom: 1rem;
+        }
+        .main-content { flex: 1; padding: 1.5rem; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .kpi-card { padding: 1rem; }
+        .kpi-card .kpi-value { font-size: 1.5rem; font-weight: 700; }
+        .kpi-card .kpi-label { font-size: 0.85rem; color: var(--gray-400); }
+        .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.8rem; font-weight: 500; }
+        .status-online { background: var(--green-500); color: #fff; }
+        .status-offline { background: var(--red-500); color: #fff; }
+        .status-maintenance { background: var(--yellow-500); color: #000; }
+        .message-row {
+            display: flex; align-items: center; gap: 1rem; padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-800);
+        }
+        .message-row:hover { background: var(--gray-900); }
+        .message-content { flex: 1; }
+        .message-meta { font-size: 0.8rem; color: var(--gray-500); }
+        .bulk-bar { display: flex; gap: 0.5rem; align-items: center; padding: 0.75rem; background: var(--gray-800); border-bottom: 1px solid var(--gray-700); }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="logo">🐾 Paws on Stream</div>
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{% url 'messages' %}" class="{% if 'messages' in request.resolver_match.url_name %}active{% endif %}">Messages</a>
+            <a href="{% url 'participants_list' %}" class="{% if 'participant' in request.resolver_match.url_name %}active{% endif %}">Participants</a>
+            <a href="{% url 'events_list' %}" class="{% if 'event' in request.resolver_match.url_name %}active{% endif %}">Events</a>
+            <a href="{% url 'devices_list' %}" class="{% if 'device' in request.resolver_match.url_name %}active{% endif %}">Devices</a>
+            <a href="{% url 'settings_dashboard' %}" class="{% if 'settings' in request.resolver_match.url_name %}active{% endif %}">Settings</a>
+        </nav>
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

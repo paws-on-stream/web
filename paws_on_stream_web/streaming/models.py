@@ -26,6 +26,19 @@ class Event(models.Model):
 
     class Meta:
         ordering = ["-starts_at"]
+        indexes = [
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["starts_at", "ends_at"]),
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError(
+                {"ends_at": "End time must be after start time."}
+            )
+        super().clean()
 
     def __str__(self):
         return f"{self.name} ({self.starts_at.strftime('%Y-%m-%d %H:%M')})"

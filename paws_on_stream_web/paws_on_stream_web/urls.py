@@ -16,6 +16,15 @@ Including another URLconf
 """
 
 from core.views import DisplayDeviceViewSet, DisplayLogViewSet, SettingsViewSet
+from dashboard.views import (
+    dashboard as dashboard_view,
+    devices_page,
+    events_page,
+    kpi_endpoint,
+    messages_page,
+    participants_page,
+    settings_page,
+)
 from django.contrib import admin
 from django.urls import include, path
 from participants.views import ParticipantViewSet
@@ -33,4 +42,11 @@ router.register(r"logs", DisplayLogViewSet, basename="displaylog")
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(router.urls)),
+    path("api/v1/kpi/", kpi_endpoint, name="kpi"),
+    path("dashboard/", dashboard_view, name="dashboard"),
+    path("dashboard/messages/", messages_page, name="messages"),
+    path("dashboard/participants/", participants_page, name="participants"),
+    path("dashboard/events/", events_page, name="events"),
+    path("dashboard/devices/", devices_page, name="devices"),
+    path("dashboard/settings/", settings_page, name="settings"),
 ]

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Participants — Paws on Stream{% endblock %}
+
+{% block content %}
+<h1>Participants</h1>
+
+<!-- Search -->
+<form method="get" class="flex gap-2" style="margin-bottom: 1.5rem;">
+    <input type="text" name="q" value="{{ search_query }}" placeholder="Search participants..." class="input">
+    <button type="submit" class="button">Search</button>
+    {% if search_query %}
+    <a href="." class="button">Clear</a>
+    {% endif %}
+</form>
+
+<!-- Participant Table -->
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Telegram ID</th>
+                <th>Checked In</th>
+                <th>Banned</th>
+                <th>Spam Count</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in participants %}
+            <tr>
+                <td><strong>{{ p.display_name }}</strong></td>
+                <td>{{ p.telegram_id }}</td>
+                <td>{{ p.checked_in|yesno:"Yes,No" }}</td>
+                <td>{{ p.banned|yesno:"Yes,No" }}</td>
+                <td>{{ p.spam_count }}</td>
+                <td>
+                    <button class="button {% if p.banned %}success{% else %}warning{% endif %}"
+                            onclick="toggleBan('{{ p.id }}', {{ p.banned }})">
+                        {{ p.banned|yesno:"Unban,Ban" }}
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No participants found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API_TOKEN = "{{ api_token }}";
+
+async function toggleBan(id, banned) {
+    await fetch(`/api/v1/participants/${id}/`, {
+        method: "PATCH",
+        headers: { "X-API-Token": API_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ banned: !banned })
+    });
+    location.reload();
+}
+</script>
+{% endblock %}

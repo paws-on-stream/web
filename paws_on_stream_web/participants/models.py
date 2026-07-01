@@ -17,6 +17,10 @@ class Participant(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["checked_in"]),
+            models.Index(fields=["banned"]),
+        ]
 
     def __str__(self):
         return f"{self.display_name} (TG:{self.telegram_id})"

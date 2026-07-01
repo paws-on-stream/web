@@ -18,7 +18,11 @@ class SettingsViewSet(viewsets.GenericViewSet):
     def retrieve(self, request, pk=None):  # noqa: ARG002
         settings = Settings.get_settings()
         serializer = self.get_serializer(settings)
-        return Response(serializer.data)
+        data = serializer.data
+        # Strip trailing whitespace / hide empty reg_api_key
+        if data.get("reg_api_key"):
+            data["reg_api_key"] = data["reg_api_key"].strip()
+        return Response(data)
 
     def update(self, request, pk=None, **kwargs):  # noqa: ARG002
         settings, _ = Settings.objects.get_or_create(id=1)

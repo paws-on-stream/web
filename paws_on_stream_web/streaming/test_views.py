@@ -133,8 +133,8 @@ class MessageApproveActionTest(APITestCase):
         self.message.approved_at = datetime.now(tz=UTC)
         self.message.save()
         response = self.client.post(f"/api/v1/messages/{self.message.id}/approve/")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "approved"
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "already" in response.json()["status"][0].lower()
 
 
 @override_settings(API_AUTH_TOKEN=TEST_TOKEN)

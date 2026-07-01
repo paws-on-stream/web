@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Paws on Stream{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="card kpi-card">
+        <div class="kpi-label">Pending Messages</div>
+        <div class="kpi-value">{{ kpis.pending_count|default:"—" }}</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-label">Bot Status</div>
+        <div class="kpi-value">
+            <span class="status-badge status-{{ kpis.bot_status|default:'offline' }}">
+                {{ kpis.bot_status|default:"offline" }}
+            </span>
+        </div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-label">Active Event</div>
+        <div class="kpi-value">{{ kpis.active_event.name|default:"None" }}</div>
+        {% if kpis.active_event.remaining_minutes %}
+        <div class="kpi-label">{{ kpis.active_event.remaining_minutes }} min left</div>
+        {% endif %}
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-label">Msg Rate (5min avg)</div>
+        <div class="kpi-value">{{ kpis.messages_rate|default:"0" }}/min</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<h2>Quick Actions</h2>
+<div class="flex flex-wrap gap-2" style="margin-bottom: 1.5rem;">
+    <a href="{% url 'messages' %}" class="button">Review Messages</a>
+    <button id="btn-toggle-bot" class="button">Toggle Bot Status</button>
+    <button id="btn-auto-approve" class="button {% if kpis.auto_approve %}success{% endif %}">
+        {% if kpis.auto_approve %}Auto-Approve: ON{% else %}Auto-Approve: OFF{% endif %}
+    </button>
+</div>
+
+<!-- Recent Pending Messages -->
+<h2>Recent Pending Messages</h2>
+<div class="card">
+    {% if recent_messages %}
+        {% for msg in recent_messages %}
+        <div class="message-row">
+            <input type="checkbox" class="message-checkbox" data-id="{{ msg.id }}">
+            <div class="message-content">
+                <strong>{{ msg.participant.display_name }}</strong>
+                <span class="message-meta">{{ msg.created_at }}</span>
+                <p>{{ msg.content }}</p>
+            </div>
+            <button class="button success" onclick="approveMessage('{{ msg.id }}')">Approve</button>
+            <button class="button error" onclick="rejectMessage('{{ msg.id }}')">Reject</button>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-center" style="padding: 2rem;">No pending messages 🎉</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API_TOKEN = "{{ api_token }}";
+const BASE_URL = "/api/v1/";
+
+async function approveMessage(id) {
+    await fetch(`${BASE_URL}messages/${id}/approve/`, {
+        method: "POST", headers: { "X-API-Token": API_TOKEN }
+    });
+    location.reload();
+}
+
+async function rejectMessage(id) {
+    await fetch(`${BASE_URL}messages/${id}/reject/`, {
+        method: "POST",
+        headers: { "X-API-Token": API_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ rejection_reason: "unknown" })
+    });
+    location.reload();
+}
+
+document.getElementById("btn-toggle-bot").onclick = async () => {
+    const res = await fetch(`${BASE_URL}settings/1/`, {
+        method: "GET", headers: { "X-API-Token": API_TOKEN }
+    });
+    const settings = await res.json();
+    const newStatus = settings.bot_status === "online" ? "offline" : "online";
+    await fetch(`${BASE_URL}settings/1/`, {
+        method: "PATCH",
+        headers: { "X-API-Token": API_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_status: newStatus })
+    });
+    location.reload();
+};
+
+document.getElementById("btn-auto-approve").onclick = async () => {
+    const res = await fetch(`${BASE_URL}settings/1/`, {
+        method: "GET", headers: { "X-API-Token": API_TOKEN }
+    });
+    const settings = await res.json();
+    await fetch(`${BASE_URL}settings/1/`, {
+        method: "PATCH",
+        headers: { "X-API-Token": API_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ auto_approve: !settings.auto_approve })
+    });
+    location.reload();
+};
+
+// Bulk select all
+document.querySelector(".bulk-bar")?.addEventListener("click", () => {});
+</script>
+{% endblock %}
