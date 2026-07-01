@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 jobs:
   django-tests:
     runs-on: ubuntu-latest
-    container: "ubuntu:latest"
+    container: "python:3.14"
     services:
       postgres:
         image: postgres
@@ -20,11 +20,6 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.14
-      - name: Install pipx
-        run: apt update && apt install -y pipx
       - uses: abatilo/actions-poetry@v3
         with:
           poetry-version: main
