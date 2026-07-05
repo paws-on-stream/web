@@ -38,4 +38,18 @@ await esbuild.build({
   sourcemap: true
 });
 
+const ICONS_SRC = path.join(
+  ROOT,
+  "node_modules/bootstrap-icons/font/fonts"
+);
+
+const ICONS_DEST = path.join(
+  ROOT,
+  "paws_on_stream_web/static/fonts/bootstrap-icons"
+);
+
+console.log("📦 Copying Bootstrap Icons fonts...");
+
+fs.copySync(ICONS_SRC, ICONS_DEST);
+
 console.log("✅ Build complete");

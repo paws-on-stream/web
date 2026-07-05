@@ -4,6 +4,10 @@
 // Bootstrap danach
 @use "bootstrap/scss/bootstrap";
 
+@use "bootstrap-icons/font/bootstrap-icons" with (
+  $bootstrap-icons-font-dir: "/static/fonts/bootstrap-icons/"
+);
+
 // Dashboard specific
 @use "dashboard";
 
