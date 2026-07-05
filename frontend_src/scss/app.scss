@@ -1,0 +1,13 @@
+// eigene Variablen zuerst
+@use "variables";
+
+// Bootstrap danach
+@use "bootstrap/scss/bootstrap";
+
+// Dashboard specific
+@use "dashboard";
+
+// eigenes CSS
+//body {
+//  padding-top: 1rem;
+//}
