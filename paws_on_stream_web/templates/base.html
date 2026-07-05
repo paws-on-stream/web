@@ -1,63 +1,212 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="de" data-bs-theme="auto">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Paws on Stream{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaahl/chota@0.9.0/dist/chota.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaahl/chota@0.9.0/dist/chota-dark.min.css">
-    <style>
-        body { margin: 0; }
-        .app-layout { display: flex; min-height: 100vh; }
-        .sidebar {
-            width: 240px; background: var(--gray-900); padding: 1rem;
-            flex-shrink: 0; border-right: 1px solid var(--gray-800);
-        }
-        .sidebar a {
-            display: block; padding: 0.6rem 0.8rem; color: var(--gray-400);
-            text-decoration: none; border-radius: var(--radius-sm); margin-bottom: 0.25rem;
-        }
-        .sidebar a:hover { background: var(--gray-800); color: var(--gray-200); }
-        .sidebar a.active { background: var(--blue-500); color: #fff; }
-        .sidebar .logo {
-            font-size: 1.2rem; font-weight: 600; color: var(--gray-100);
-            padding: 0.5rem 0.8rem; margin-bottom: 1rem;
-        }
-        .main-content { flex: 1; padding: 1.5rem; }
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .kpi-card { padding: 1rem; }
-        .kpi-card .kpi-value { font-size: 1.5rem; font-weight: 700; }
-        .kpi-card .kpi-label { font-size: 0.85rem; color: var(--gray-400); }
-        .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.8rem; font-weight: 500; }
-        .status-online { background: var(--green-500); color: #fff; }
-        .status-offline { background: var(--red-500); color: #fff; }
-        .status-maintenance { background: var(--yellow-500); color: #000; }
-        .message-row {
-            display: flex; align-items: center; gap: 1rem; padding: 0.75rem;
-            border-bottom: 1px solid var(--gray-800);
-        }
-        .message-row:hover { background: var(--gray-900); }
-        .message-content { flex: 1; }
-        .message-meta { font-size: 0.8rem; color: var(--gray-500); }
-        .bulk-bar { display: flex; gap: 0.5rem; align-items: center; padding: 0.75rem; background: var(--gray-800); border-bottom: 1px solid var(--gray-700); }
-    </style>
-    {% block extra_head %}{% endblock %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>Dashboard Template · Bootstrap v5.3</title>
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
 </head>
 <body>
-    <div class="app-layout">
-        <nav class="sidebar">
-            <div class="logo">🐾 Paws on Stream</div>
-            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
-            <a href="{% url 'messages' %}" class="{% if 'messages' in request.resolver_match.url_name %}active{% endif %}">Messages</a>
-            <a href="{% url 'participants_list' %}" class="{% if 'participant' in request.resolver_match.url_name %}active{% endif %}">Participants</a>
-            <a href="{% url 'events_list' %}" class="{% if 'event' in request.resolver_match.url_name %}active{% endif %}">Events</a>
-            <a href="{% url 'devices_list' %}" class="{% if 'device' in request.resolver_match.url_name %}active{% endif %}">Devices</a>
-            <a href="{% url 'settings_dashboard' %}" class="{% if 'settings' in request.resolver_match.url_name %}active{% endif %}">Settings</a>
-        </nav>
-        <main class="main-content">
-            {% block content %}{% endblock %}
-        </main>
+<div class="dropdown position-fixed bottom-0 end-0 mb-3 me-3 bd-mode-toggle">
+  <button class="btn btn-bd-primary py-2 dropdown-toggle d-flex align-items-center"
+          id="bd-theme"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false">
+
+    <i class="bi bi-circle-half theme-icon-active"></i>
+
+    <span class="visually-hidden" id="bd-theme-text">Toggle theme</span>
+  </button>
+
+  <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bd-theme-text">
+
+    <li>
+      <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light">
+        <i class="bi bi-sun opacity-50 me-2"></i>
+        Light
+        <i class="bi bi-check ms-auto d-none"></i>
+      </button>
+    </li>
+
+    <li>
+      <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark">
+        <i class="bi bi-moon-stars-fill opacity-50 me-2"></i>
+        Dark
+        <i class="bi bi-check ms-auto d-none"></i>
+      </button>
+    </li>
+
+    <li>
+      <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="auto">
+        <i class="bi bi-circle-half opacity-50 me-2"></i>
+        Auto
+        <i class="bi bi-check ms-auto"></i>
+      </button>
+    </li>
+
+  </ul>
+</div>
+<header class="navbar sticky-top bg-dark flex-md-nowrap p-0 shadow" data-bs-theme="dark">
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6 text-white" href="#">Paws on Stream</a>
+  <ul class="navbar-nav flex-row d-md-none">
+    <li class="nav-item text-nowrap">
+      <button class="nav-link px-3 text-white" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+              aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="bi bi-list" aria-hidden="true"></i>
+      </button>
+    </li>
+  </ul>
+</header>
+<div class="container-fluid">
+  <div class="row">
+    <div class="sidebar border border-right col-md-3 col-lg-2 p-0 bg-body-tertiary">
+      <div class="offcanvas-md offcanvas-end bg-body-tertiary" tabindex="-1" id="sidebarMenu"
+           aria-labelledby="sidebarMenuLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="sidebarMenuLabel">Paws on Stream</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu"
+                  aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-md-flex flex-column p-0 pt-lg-3 overflow-y-auto">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2 active" aria-current="page" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#house-fill"></use>
+                </svg>
+
+                Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#file-earmark"></use>
+                </svg>
+
+                Orders
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#cart"></use>
+                </svg>
+
+                Products
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#people"></use>
+                </svg>
+
+                Customers
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#graph-up"></use>
+                </svg>
+
+                Reports
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#puzzle"></use>
+                </svg>
+
+                Integrations
+              </a>
+            </li>
+          </ul>
+          <h6
+            class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-body-secondary text-uppercase">
+            <span>Saved reports</span>
+            <a class="link-secondary" href="#" aria-label="Add a new report">
+              <svg class="bi" aria-hidden="true">
+                <use xlink:href="#plus-circle"></use>
+              </svg>
+            </a>
+          </h6>
+          <ul class="nav flex-column mb-auto">
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#file-earmark-text"></use>
+                </svg>
+
+                Current month
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#file-earmark-text"></use>
+                </svg>
+
+                Last quarter
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#file-earmark-text"></use>
+                </svg>
+
+                Social engagement
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#file-earmark-text"></use>
+                </svg>
+
+                Year-end sale
+              </a>
+            </li>
+          </ul>
+          <hr class="my-3">
+          <ul class="nav flex-column mb-auto">
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#gear-wide-connected"></use>
+                </svg>
+
+                Settings
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2" href="#">
+                <svg class="bi" aria-hidden="true">
+                  <use xlink:href="#door-closed"></use>
+                </svg>
+
+                Sign out
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
-    {% block scripts %}{% endblock %}
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+      <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        {% block header %}{% endblock %}
+      </div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{% static 'js/app.js' %}"></script>
 </body>
 </html>
