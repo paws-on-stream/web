@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Paws on Stream{% endblock %}
+
+{% block content %}
+  <h1>Dashboard</h1>
+  <div class="container">
+    <div class="row">
+      {% for kpi in kpis %}
+        <div class="col">
+          <div class="card text-center">
+            <div class="card-header"><h6>{{ kpi.name }}</h6></div>
+            <div class="card-body">
+              {{ kpi.value }}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <hr/>
+  <div class="container">
+    {% for message in recent_messages %}
+      {% include "streaming/inc/message_small.html" %}
+    {% endfor %}
+  </div>
+
+{% endblock %}

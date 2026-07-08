@@ -5,6 +5,7 @@ from datetime import timedelta
 from core.models import DisplayDevice, Settings
 from django.shortcuts import render
 from django.utils import timezone
+from participants.models import Participant
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from streaming.models import Event, Message
@@ -37,14 +38,26 @@ def dashboard(request):
         "participant"
     )[:20]
 
-    context = {
-        "kpis": {
-            "pending_count": pending_count,
-            "bot_status": settings.bot_status,
-            "active_event": active_event_data,
-            "messages_rate": messages_rate,
-            "auto_approve": settings.auto_approve,
+    kpis = [
+        {
+            "name": "Pending Messages",
+            "id": "msg-pending",
+            "value": pending_count,
         },
+        {
+            "name": "Messages Rate",
+            "id": "msg-rate",
+            "value": messages_rate,
+        },
+        {
+            "name": "Participants",
+            "id": "participants",
+            "value": Participant.objects.all().count(),
+        },
+    ]
+
+    context = {
+        "kpis": kpis,
         "recent_messages": MessageSerializer(recent_messages, many=True).data,
         "api_token": request.META.get("API_AUTH_TOKEN", ""),
     }
