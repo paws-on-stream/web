@@ -14,19 +14,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-
 from core.views import DisplayDeviceViewSet, DisplayLogViewSet, SettingsViewSet
-from dashboard.views import (
-    dashboard as dashboard_view,
-)
-from dashboard.views import (
-    devices_page,
-    events_page,
-    kpi_endpoint,
-    messages_page,
-    participants_page,
-    settings_page,
-)
+from debug_toolbar.toolbar import debug_toolbar_urls
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from participants.views import ParticipantViewSet
@@ -44,11 +34,8 @@ router.register(r"logs", DisplayLogViewSet, basename="displaylog")
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(router.urls)),
-    path("api/v1/kpi/", kpi_endpoint, name="kpi"),
-    path("dashboard/", dashboard_view, name="dashboard"),
-    path("dashboard/messages/", messages_page, name="messages"),
-    path("dashboard/participants/", participants_page, name="participants"),
-    path("dashboard/events/", events_page, name="events"),
-    path("dashboard/devices/", devices_page, name="devices"),
-    path("dashboard/settings/", settings_page, name="settings"),
+    path("", include("dashboard.urls", namespace="dashboard")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += debug_toolbar_urls()
