@@ -1,8 +1,51 @@
-<div class="card" style="margin-top: 10px;">
-  <div class="card-body">
-    <h6 class="card-title text-body-secondary">{{ message.participant.display_name }}</h6>
-    <p class="card-text">{{ message.content }}</p>
-    <a href="#" class="btn btn-primary">Approve</a>
-    <a href="#" class="btn btn-danger">Reject</a>
+<div class="card mb-2 message-card"
+     data-created="{{ message.created_at|date:'c' }}"
+     style="border-left: 4px solid var(--bs-border-color);">
+
+  <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+
+    <div class="flex-grow-1 me-3 min-w-0">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <strong class="text-truncate" style="font-size: 0.95rem;">{{ message.participant.display_name }}</strong>
+
+        {% if message.status == 'pending' %}
+          <span class="badge rounded-pill bg-warning text-dark" style="font-size:0.7rem;"><i
+            class="bi bi-hourglass"></i></span>
+        {% elif message.status == 'approved' %}
+          <span class="badge rounded-pill bg-success" style="font-size:0.7rem;"><i class="bi bi-check"></i></span>
+        {% elif message.status == 'rejected' %}
+          <span class="badge rounded-pill bg-danger" style="font-size:0.7rem;"><i class="bi bi-x"></i></span>
+        {% endif %}
+        <small class="badge bg-light border text-secondary">{{ message.get_media_type_display }}</small>
+        {% if message.event %}
+          <small class="badge bg-light border text-primary">{{ message.event.name }}</small>
+        {% endif %}
+      </div>
+      <p class="mb-0 text-truncate" style="font-size: 0.9rem; color: var(--bs-body-color);">
+        {% if message.media_type == 'text' or message.media_type == 'photo' %}
+          {% if message.media_type == 'photo' %}
+            <img src="{{ message.media_url }}" class="img-thumbnail" height="100px" width="100px"/>
+          {% endif %}
+          {{ message.content }}
+        {% elif message.media_type == 'sticker' or message.media_type == 'gif' %}
+          <img src="{{ message.media_url }}" class="img-thumbnail" height="100px" width="100px"/>
+        {% else %}
+          Unknown Mediatype!
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      <span class="time-ago text-muted" style="font-size: 0.8rem; white-space: nowrap;"></span>
+      <div class="btn-group btn-group-sm">
+        <a class="btn btn-outline-primary" title="Details" href="{% url 'streaming:message_detail' message.pk %}">
+          <i class="bi bi-search"></i></a>
+        {% if message.status == 'pending' %}
+          <button class="btn btn-outline-success" title="Freigeben"><i class="bi bi-check"></i></button>
+          <button class="btn btn-outline-danger" title="Ablehnen"><i class="bi bi-x"></i></button>
+        {% endif %}
+      </div>
+    </div>
+
   </div>
 </div>

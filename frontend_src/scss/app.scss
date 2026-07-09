@@ -15,3 +15,15 @@
 .bi {
   margin-top: -8px;
 }
+
+.message-card[data-status="pending"] {
+  border-left-color: var(--bs-warning);
+}
+
+.message-card[data-status="approved"] {
+  border-left-color: var(--bs-success);
+}
+
+.message-card[data-status="rejected"] {
+  border-left-color: var(--bs-danger);
+}
