@@ -1,18 +1,35 @@
 """Seed development data for dashboard testing."""
 
-from datetime import UTC, datetime, timedelta
 import random
+from datetime import UTC, datetime, timedelta
+
+from core.models import DisplayDevice, Settings
 from django.core.management.base import BaseCommand
 from participants.models import Participant
-from streaming.models import Event, Message
-from core.models import DisplayDevice, Settings
 from paws_on_stream_web.factories import UserFactory
+from streaming.models import Event, Message
 
 FURRY_NAMES = [
-    "FrostPaw", "LunaTail", "ShadowWolf", "BerryFox", "ThunderPurr",
-    "MochiCat", "StormHawk", "PixelPaw", "MapleLeaf", "EchoFur",
-    "NebulaPaws", "CopperTail", "WillowPaw", "SparkFox", "AsterWolf",
-    "MistyPaw", "JadeTail", "BlazeFur", "SilverPaw", "CedarFox",
+    "FrostPaw",
+    "LunaTail",
+    "ShadowWolf",
+    "BerryFox",
+    "ThunderPurr",
+    "MochiCat",
+    "StormHawk",
+    "PixelPaw",
+    "MapleLeaf",
+    "EchoFur",
+    "NebulaPaws",
+    "CopperTail",
+    "WillowPaw",
+    "SparkFox",
+    "AsterWolf",
+    "MistyPaw",
+    "JadeTail",
+    "BlazeFur",
+    "SilverPaw",
+    "CedarFox",
 ]
 
 MESSAGES_TEXT = [
@@ -50,8 +67,18 @@ PHOTO_CAPTIONS = [
 ]
 
 STICKER_EMOJIS = [
-    "🐾", "🦊", "🐺", "🐱", "🐶", "🦌",
-    "✨", "🔥", "💖", "🎉", "🎭", "🐲",
+    "🐾",
+    "🦊",
+    "🐺",
+    "🐱",
+    "🐶",
+    "🦌",
+    "✨",
+    "🔥",
+    "💖",
+    "🎉",
+    "🎭",
+    "🐲",
 ]
 
 
@@ -83,6 +110,7 @@ class Command(BaseCommand):
             Participant.objects.all().delete()
             # Clear users too (needed for approved_by FK + unique username)
             from django.contrib.auth.models import User as AuthUser
+
             AuthUser.objects.filter(username="moderator").delete()
 
         # --- Settings ---
@@ -120,7 +148,7 @@ class Command(BaseCommand):
             ends_at=now + timedelta(hours=8),
             is_active=False,
         )
-        self.stdout.write(f"📅 Created 3 events (1 active)")
+        self.stdout.write("📅 Created 3 events (1 active)")
 
         # --- Participants ---
         participants = []
@@ -141,10 +169,7 @@ class Command(BaseCommand):
 
         # --- Messages ---
         statuses = (
-            ["pending"] * 15
-            + ["approved"] * 20
-            + ["rejected"] * 10
-            + ["displayed"] * 5
+            ["pending"] * 15 + ["approved"] * 20 + ["rejected"] * 10 + ["displayed"] * 5
         )
         random.shuffle(statuses)
 
@@ -161,7 +186,7 @@ class Command(BaseCommand):
             # Media-Content je nach Typ
             content, media_url, emoji = self._random_message_content(media_type)
 
-            msg = Message.objects.create(
+            Message.objects.create(
                 participant=participant,
                 event=active_event if random.random() > 0.2 else None,
                 content=content,
@@ -206,10 +231,22 @@ class Command(BaseCommand):
     def _random_message_content(media_type):
         """Return (content, media_url, sticker_emoji) based on media_type."""
         if media_type == "photo":
-            return random.choice(PHOTO_CAPTIONS), f"https://i.ibb.co/photo/{random.randint(100000, 999999)}.jpg", ""
+            return (
+                random.choice(PHOTO_CAPTIONS),
+                f"https://i.ibb.co/photo/{random.randint(100000, 999999)}.jpg",
+                "",
+            )
         if media_type == "gif":
-            return "", f"https://media.giphy.com/media/{random.randint(10000, 99999)}.gif", ""
+            return (
+                "",
+                f"https://media.giphy.com/media/{random.randint(10000, 99999)}.gif",
+                "",
+            )
         if media_type == "sticker":
-            return "", f"https://i.ibb.co/sticker/{random.randint(100000, 999999)}.webp", random.choice(STICKER_EMOJIS)
+            return (
+                "",
+                f"https://i.ibb.co/sticker/{random.randint(100000, 999999)}.webp",
+                random.choice(STICKER_EMOJIS),
+            )
         # text
         return random.choice(MESSAGES_TEXT), "", ""

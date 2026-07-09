@@ -17,22 +17,21 @@ def dashboard(request):
     now = timezone.now()
     five_min_ago = now - timedelta(minutes=5)
 
-    settings = Settings.get_settings()
     pending_count = Message.objects.filter(status="pending").count()
     messages_rate = round(
         Message.objects.filter(created_at__gte=five_min_ago).count() / 5, 1
     )
 
-    active_event = Event.objects.filter(
-        is_active=True, starts_at__lte=now, ends_at__gte=now
-    ).first()
-    active_event_data = None
-    if active_event:
-        remaining = (active_event.ends_at - now).total_seconds() / 60
-        active_event_data = {
-            "name": active_event.name,
-            "remaining_minutes": round(remaining),
-        }
+    # active_event = Event.objects.filter(
+    #     is_active=True, starts_at__lte=now, ends_at__gte=now
+    # ).first()
+    # active_event_data = None
+    # if active_event:
+    #     remaining = (active_event.ends_at - now).total_seconds() / 60
+    #     active_event_data = {
+    #         "name": active_event.name,
+    #         "remaining_minutes": round(remaining),
+    #     }
 
     recent_messages = Message.objects.filter(status="pending").select_related(
         "participant"
