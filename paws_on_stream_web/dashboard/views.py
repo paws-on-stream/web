@@ -58,7 +58,7 @@ def dashboard(request):
 
     context = {
         "kpis": kpis,
-        "recent_messages": MessageSerializer(recent_messages, many=True).data,
+        "recent_messages": recent_messages,
         "api_token": request.META.get("API_AUTH_TOKEN", ""),
     }
     return render(request, "dashboard/dashboard.html", context)
