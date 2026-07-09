@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from core.views import DisplayDeviceViewSet, DisplayLogViewSet, SettingsViewSet
 from debug_toolbar.toolbar import debug_toolbar_urls
 from django.conf import settings
@@ -35,6 +36,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(router.urls)),
     path("", include("dashboard.urls", namespace="dashboard")),
+    path("streaming/", include("streaming.urls", namespace="streaming")),
 ]
 
 if settings.DEBUG:

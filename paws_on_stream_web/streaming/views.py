@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from core.models import DisplayDevice, DisplayLog, Settings
 from django.utils import timezone
+from django.views.generic import DetailView, ListView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -231,3 +232,11 @@ class MessageViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class MessageListView(ListView):
+    queryset = Message.objects.order_by("-created_at")
+    context_object_name = "messages"
+
+class MessageDetailView(DetailView):
+    model = Message
