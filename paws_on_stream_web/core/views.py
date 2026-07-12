@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from django.views.generic import TemplateView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -69,3 +70,14 @@ class DisplayDeviceViewSet(viewsets.ModelViewSet):
 class DisplayLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DisplayLog.objects.select_related("message__participant", "device").all()
     serializer_class = DisplayLogSerializer
+
+
+class SettingsView(TemplateView):
+    template_name = "core/settings_detail.html"
+
+    def get_context_data(self, **kwargs):
+        settings = Settings.get_settings()
+        context = {
+            "settings": settings,
+        }
+        return context

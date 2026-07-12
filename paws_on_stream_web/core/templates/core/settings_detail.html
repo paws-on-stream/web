@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <h1>Settings</h1>
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+          <h6 class="text-muted mb-3">Bot & Moderation</h6>
+          <div class="row">
+            <div class="col"><b>Bot Status:</b> {{ settings.get_bot_status_display }}</div>
+            <div class="col"><b>Auto Approve:</b> {{ settings.auto_approve }}</div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><b>Require Event Active:</b> {{ settings.require_event_active }}</div>
+            <div class="col"><b>Status Check Interval (sec):</b> {{ settings.status_check_interval }}</div>
+          </div>
+        </li>
+
+        <li class="list-group-item">
+          <h6 class="text-muted mb-3">Nachrichtenregeln</h6>
+          <div class="row">
+            <div class="col"><b>Max Message Length:</b> {{ settings.max_message_length }}</div>
+            <div class="col"><b>Rate Limit per Minute:</b> {{ settings.rate_limit_per_minute }}</div>
+          </div>
+        </li>
+
+        <li class="list-group-item">
+          <h6 class="text-muted mb-3">Anzeige & Overlay</h6>
+          <div class="row">
+            <div class="col"><b>Display Duration (sec):</b> {{ settings.display_duration_sec }}</div>
+            <div class="col"><b>Display Mode:</b> {{ settings.display_mode }}</div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><b>Overlay Theme:</b> {{ settings.overlay_theme }}</div>
+            <div class="col"><b>Overlay Font Size:</b> {{ settings.overlay_font_size }}</div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><b>Scroll Speed (px):</b> {{ settings.scroll_speed_px }}</div>
+          </div>
+        </li>
+
+        <li class="list-group-item">
+          <h6 class="text-muted mb-3">Reg-API</h6>
+          <div class="row">
+            <div class="col"><b>Registration API URL:</b> {{ settings.reg_api_url|default:"-" }}</div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><b>Registration API Key:</b> {{ settings.reg_api_key|default:"-" }}</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+{% endblock %}

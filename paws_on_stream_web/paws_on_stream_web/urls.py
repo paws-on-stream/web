@@ -38,6 +38,7 @@ urlpatterns = [
     path("", include("dashboard.urls", namespace="dashboard")),
     path("streaming/", include("streaming.urls", namespace="streaming")),
     path("participants/", include("participants.urls", namespace="participants")),
+    path("core/", include("core.urls", namespace="core")),
 ]
 
 if settings.DEBUG:
