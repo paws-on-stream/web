@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Participant — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="card">
+      <div class="card-header"><h1>Event - {{ event.name }}</h1>
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+          <div class="row">
+            <div class="col"><b>Name:</b> {{ event.name }}
+            </div>
+            <div class="col"><b>Aktiv:</b> {{ event.is_active }}</div>
+          </div>
+          <div class="row">
+            <div class="col"><b>Beginn:</b> {{ event.starts_at }}</div>
+            <div class="col"><b>Ende:</b> {{ event.ends_at }}</div>
+          </div>
+        </li>
+        <li class="list-group-item">
+          <h5>Einstellungen:</h5>
+          <div class="row">
+            <div class="col"><b>Bot aktiv:</b> {{ event.allow_messages }}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col"><b>Bot modus:</b>
+              {% if event.display_mode %}{{ event.display_mode }}{% else %}{{ settings.display_mode }}
+                (Default) {% endif %}</div>
+          </div>
+          <div class="row">
+            <div class="col"><b>Bot Scoll Geschwindigkeit:</b>
+              {% if event.scroll_speed_px %}{{ event.scroll_speed_px }}{% else %}{{ settings.scroll_speed_px }}
+                (Default) {% endif %}</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    </li>
+    </ul>
+  </div>
+  </div>
+
+{% endblock %}

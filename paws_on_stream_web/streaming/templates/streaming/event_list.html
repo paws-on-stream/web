@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Messages — Paws on Stream{% endblock %}
+
+{% block content %}
+  <h1>Events</h1>
+  <div class="container">
+    <table class="table table-striped">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Bot aktiv</th>
+        <th>Bot modus</th>
+        <th>Start</th>
+        <th>End</th>
+        <th></th>
+      </tr>
+      </thead>
+      <tbody class="table-group-divider">
+      {% for event in events %}
+
+        <tr>
+          <td>{{ event.name }}</td>
+          <td>{% if event.allow_messages %}<i class="bi bi-check"></i>{% else %}<i class="bi bi-x"></i>{% endif %}</td>
+          <td>{% if event.display_mode %}{{ event.display_mode }}{% else %}{{ settings.display_mode }}
+            (Default){% endif %}</td>
+          <td>{{ event.starts_at }}</td>
+          <td>{{ event.ends_at }}</td>
+          <td><a href="{% url 'streaming:event_detail' event.pk %}" class="btn btn-sm btn-outline-primary"><i
+            class="bi bi-search"></i></a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% endblock %}

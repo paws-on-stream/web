@@ -238,5 +238,25 @@ class MessageListView(ListView):
     queryset = Message.objects.order_by("-created_at")
     context_object_name = "messages"
 
+
 class MessageDetailView(DetailView):
     model = Message
+
+
+class EventListView(ListView):
+    queryset = Event.objects.order_by("starts_at")
+    context_object_name = "events"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["settings"] = Settings.get_settings()
+        return context
+
+
+class EventDetailView(DetailView):
+    model = Event
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["settings"] = Settings.get_settings()
+        return context
