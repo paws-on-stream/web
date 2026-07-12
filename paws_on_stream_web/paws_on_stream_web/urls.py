@@ -37,6 +37,7 @@ urlpatterns = [
     path("api/v1/", include(router.urls)),
     path("", include("dashboard.urls", namespace="dashboard")),
     path("streaming/", include("streaming.urls", namespace="streaming")),
+    path("participants/", include("participants.urls", namespace="participants")),
 ]
 
 if settings.DEBUG:

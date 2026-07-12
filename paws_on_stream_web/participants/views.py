@@ -1,3 +1,5 @@
+from core.models import Settings
+from django.views.generic import DetailView, ListView
 from rest_framework import viewsets
 
 from participants.models import Participant
@@ -11,3 +13,12 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return ParticipantCreateSerializer
         return ParticipantSerializer
+
+
+class ParticipantListView(ListView):
+    queryset = Participant.objects.all()
+    context_object_name = "participants"
+
+
+class ParticipantDetailView(DetailView):
+    model = Participant

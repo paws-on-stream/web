@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Participant — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="card">
+      <div class="card-header"><h1>Participant - {{ participant.display_name }})</h1>
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+          <div class="row">
+            <div class="col"><b>Name:</b> {{ participant.display_name }}
+            </div>
+            <div class="col"><b>Empfangen:</b> {{ message.created_at }}</div>
+          </div>
+          <div class="row">
+            <div class="col"><b>Status:</b> {{ message.get_status_display }}</div>
+            <div class="col"><b>Type:</b> {{ message.get_media_type_display }}</div>
+          </div>
+        </li>
+        <li class="list-group-item">
+          <p><b>Message:</b></p>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+{% endblock %}
