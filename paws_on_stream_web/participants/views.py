@@ -1,4 +1,3 @@
-from core.models import Settings
 from django.views.generic import DetailView, ListView
 from rest_framework import viewsets
 
