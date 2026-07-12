@@ -14,6 +14,7 @@ TEST_TOKEN = "test-api-token"
 class SettingsViewTest(APITestCase):
     def setUp(self):
         from django.core.cache import cache
+
         cache.clear()  # Clear throttle counters from prior test classes
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
         # Delete stale Settings from other test classes so SettingsFactory()

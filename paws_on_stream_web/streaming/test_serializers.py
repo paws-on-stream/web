@@ -65,8 +65,7 @@ class MessageSerializerTest(TestCase):
         assert data["status"] == self.message.status
         assert "participant" in data
         assert (
-            data["participant"]["display_name"]
-            == self.message.participant.display_name
+            data["participant"]["display_name"] == self.message.participant.display_name
         )
 
     def test_display_fields(self):
