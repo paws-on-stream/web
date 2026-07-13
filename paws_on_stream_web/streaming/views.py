@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from core.models import DisplayDevice, DisplayLog, Settings
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
+from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 from streaming.models import Event, Message
 from streaming.sanitization import sanitize_content
 from streaming.serializers import EventSerializer, MessageSerializer
+from streaming.tables import MessageTable
 
 
 class EventViewSet(viewsets.ReadOnlyModelViewSet):
@@ -234,9 +236,31 @@ class MessageViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class MessageListView(ListView):
-    queryset = Message.objects.order_by("-created_at")
+class MessageListView(SingleTableView):
+    model = Message
+    table_class = MessageTable
+    template_name = "streaming/message_list.html"
     context_object_name = "messages"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Message.objects.select_related("participant", "event").order_by(
+            "-created_at"
+        )
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        selected = request.POST.getlist("select")  # from checkbox column
+        messages = Message.objects.filter(id__in=selected)
+
+        if action == "approve":
+            messages.update(status="approved", approved_at=timezone.now())
+        elif action == "reject":
+            messages.update(status="rejected")
+        elif action == "delete":
+            messages.delete()
+
+        return self.get(request, *args, **kwargs)
 
 
 class MessageDetailView(DetailView):

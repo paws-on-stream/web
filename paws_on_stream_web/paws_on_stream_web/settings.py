@@ -47,7 +47,11 @@ INSTALLED_APPS = [
     "streaming",
     "participants",
     "dashboard",
+    "django_tables2",
 ]
+
+# django-tables2
+TABLES_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

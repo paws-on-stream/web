@@ -241,6 +241,24 @@ django = "*"
 typing-extensions = "*"
 
 [[package]]
+name = "django-tables2"
+version = "3.0.0"
+description = "Table/data-grid framework for Django"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "django_tables2-3.0.0-py3-none-any.whl", hash = "sha256:2a5b5447f10d7a8cfb7a2e8f0b139d969c7eb2e675079a4b8ba0107956345bfa"},
+    {file = "django_tables2-3.0.0.tar.gz", hash = "sha256:3c5343f72663b0d6684e8e6cbcb16caae10d7621a51c1cf3c581f57ce605f8ee"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+
+[package.extras]
+tablib = ["tablib"]
+
+[[package]]
 name = "djangorestframework"
 version = "3.17.1"
 description = "Web APIs for Django, made easy."
@@ -488,4 +506,4 @@ markers = {main = "sys_platform == \"win32\"", dev = "sys_platform == \"win32\" 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "72f4f66e22efc9bf144e28a3b0c23b0a7d02f06dfc9984b6bd0bf465e4201512"
+content-hash = "81cbc8a1a6fc2fd4aa90f634adf5d8da5b17119c59f218f327cc9db872879915"

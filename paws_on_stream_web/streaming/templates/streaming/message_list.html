@@ -1,13 +1,23 @@
 {% extends "base.html" %}
+{% load django_tables2 %}
 
 {% block title %}Messages — Paws on Stream{% endblock %}
 
 {% block content %}
   <h1>Messages</h1>
   <div class="container">
-    {% for message in messages %}
-      {% include "streaming/inc/message_small.html" %}
-    {% endfor %}
-  </div>
+    <form method="post" class="mb-3">
+      {% csrf_token %}
+      <div class="d-flex gap-2 align-items-center">
+        <select name="action" class="form-select form-select-sm w-auto">
+          <option value="approve">Approve Selected</option>
+          <option value="reject">Reject Selected</option>
+          <option value="delete">Delete Selected</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+      </div>
+    </form>
 
+    {% render_table table %}
+  </div>
 {% endblock %}
