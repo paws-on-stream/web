@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
-from django.views.generic import TemplateView
+from django_tables2 import SingleTableView
+from django.views.generic import DetailView, TemplateView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from core.serializers import (
     DisplayLogSerializer,
     SettingsSerializer,
 )
+from core.tables import DisplayDeviceTable
 
 
 class SettingsViewSet(viewsets.GenericViewSet):
@@ -81,3 +83,31 @@ class SettingsView(TemplateView):
             "settings": settings,
         }
         return context
+
+
+class DisplayDeviceListView(SingleTableView):
+    model = DisplayDevice
+    table_class = DisplayDeviceTable
+    template_name = "core/device_list.html"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return DisplayDevice.objects.all().order_by("device_id")
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        selected = request.POST.getlist("select")
+        devices = DisplayDevice.objects.filter(id__in=selected)
+
+        if action == "activate":
+            devices.update(is_active=True)
+        elif action == "deactivate":
+            devices.update(is_active=False)
+        elif action == "delete":
+            devices.delete()
+
+        return self.get(request, *args, **kwargs)
+
+
+class DisplayDeviceDetailView(DetailView):
+    model = DisplayDevice

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block title %}Devices — Paws on Stream{% endblock %}
+
+{% block content %}
+  <h1>Display Devices</h1>
+  <div class="container">
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex gap-2 mb-3 align-items-center">
+        <select name="action" class="form-select form-select-sm w-auto">
+          <option value="">-- Action --</option>
+          <option value="activate">Activate Selected</option>
+          <option value="deactivate">Deactivate Selected</option>
+          <option value="delete">Delete Selected</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary" id="bulk-action-submit">Apply</button>
+      </div>
+      {% render_table table %}
+    </form>
+  </div>
+{% endblock %}
