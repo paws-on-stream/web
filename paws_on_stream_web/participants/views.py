@@ -1,8 +1,10 @@
-from django.views.generic import DetailView, ListView
+from django_tables2 import SingleTableView
+from django.views.generic import DetailView
 from rest_framework import viewsets
 
 from participants.models import Participant
 from participants.serializers import ParticipantCreateSerializer, ParticipantSerializer
+from participants.tables import ParticipantTable
 
 
 class ParticipantViewSet(viewsets.ModelViewSet):
@@ -14,9 +16,28 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         return ParticipantSerializer
 
 
-class ParticipantListView(ListView):
-    queryset = Participant.objects.all()
-    context_object_name = "participants"
+class ParticipantListView(SingleTableView):
+    model = Participant
+    table_class = ParticipantTable
+    template_name = "participants/participant_list.html"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Participant.objects.all().order_by("-created_at")
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        selected = request.POST.getlist("select")
+        participants = Participant.objects.filter(id__in=selected)
+
+        if action == "ban":
+            participants.update(banned=True)
+        elif action == "unban":
+            participants.update(banned=False, muted_until=None)
+        elif action == "delete":
+            participants.delete()
+
+        return self.get(request, *args, **kwargs)
 
 
 class ParticipantDetailView(DetailView):

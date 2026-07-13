@@ -1,34 +1,23 @@
 {% extends "base.html" %}
+{% load django_tables2 %}
 
 {% block title %}Participants — Paws on Stream{% endblock %}
 
 {% block content %}
   <h1>Participants</h1>
   <div class="container">
-    <table class="table table-striped">
-      <thead>
-      <tr>
-        <th>Reg ID</th>
-        <th>Name</th>
-        <th>Spam Count</th>
-        <th></th>
-      </tr>
-      </thead>
-      <tbody class="table-group-divider">
-      {% for participant in participants %}
-
-        <tr>
-          <th scope="row">{{ participant.reg_id | default_if_none:'-' }}</th>
-          <td>{{ participant.display_name }}</td>
-          <td>{{ participant.spam_count }}</td>
-          <td><a href="{% url 'participants:participant_detail' participant.pk %}"
-                 class="btn btn-sm btn-outline-primary"><i
-            class="bi bi-search"></i></a>
-          </td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex gap-2 mb-3 align-items-center">
+        <select name="action" class="form-select form-select-sm w-auto">
+          <option value="">-- Action --</option>
+          <option value="ban">Ban Selected</option>
+          <option value="unban">Unban Selected</option>
+          <option value="delete">Delete Selected</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary" id="bulk-action-submit">Apply</button>
+      </div>
+      {% render_table table %}
+    </form>
   </div>
-
 {% endblock %}
