@@ -51,7 +51,7 @@ INSTALLED_APPS = [
 ]
 
 # django-tables2
-TABLES_TEMPLATE_PACK = "bootstrap5"
+DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

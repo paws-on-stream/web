@@ -2,6 +2,8 @@
 
 import django_tables2 as tables
 
+from streaming.models import Message
+
 
 class MessageTable(tables.Table):
     """Table definition for the Message model."""
@@ -9,7 +11,7 @@ class MessageTable(tables.Table):
     select = tables.CheckBoxColumn(accessor="pk", order_by=("-created_at",))
 
     class Meta:
-        model = "streaming.Message"  # lazy reference to avoid import cycles
+        model = Message # lazy reference to avoid import cycles
         fields = (
             "select",
             "participant",
