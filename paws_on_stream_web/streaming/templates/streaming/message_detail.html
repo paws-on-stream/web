@@ -1,50 +1,102 @@
 {% extends "base.html" %}
-{% debug %}
-{% block title %}Messages — Paws on Stream{% endblock %}
+{% load django_tables2 %}
+
+{% block title %}Message — {{ message.participant.display_name }}{% endblock %}
 
 {% block content %}
-  <div class="container">
-    <div class="card">
-      <div class="card-header"><h1>Message - {{ message.participant.display_name }} ({{ message.created_at }})</h1>
+  {% include "includes/_detail_header.html" with detail_list_url="streaming:message_list" detail_name="Message" badges=badges show_edit=True show_delete=True %}
+
+  <div class="row g-3">
+    <!-- Left: Attributes -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header">Details</div>
+        <dl class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Status</dt>
+            <dd>{% include "includes/_status_badge.html" with status=message.status %}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Media Type</dt>
+            <dd>{{ message.get_media_type_display }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Created</dt>
+            <dd>{{ message.created_at|date:"d.m.Y H:i" }}</dd>
+          </div>
+          <div class="list-group-item">
+            <dt class="text-muted">Raw Content</dt>
+            <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#rawContent">
+              Show raw
+            </button>
+            <div class="collapse mt-2" id="rawContent">
+              <pre class="bg-body-tertiary p-2 rounded small mb-0">{{ message.raw_content|default:"-" }}</pre>
+            </div>
+          </div>
+        </dl>
       </div>
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item">
-          <div class="row">
-            <div class="col"><b>Teilnehmer:</b> {{ message.participant.display_name }}(#{{ message.participant.reg_id }})
-            </div>
-            <div class="col"><b>Empfangen:</b> {{ message.created_at }}</div>
-          </div>
-          <div class="row">
-            <div class="col"><b>Status:</b> {{ message.get_status_display }}</div>
-            <div class="col"><b>Type:</b> {{ message.get_media_type_display }}</div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <p><b>Message:</b></p>
-          {% if message.media_type == 'text' or message.media_type == 'photo' %}
-            {% if message.media_type == 'photo' %}
-              <img src="{{ message.media_url }}" class="img-thumbnail mx-auto d-block"/>
-            {% endif %}
-            <p>{{ message.content }}</p>
-            <p class="text-end"><a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#raw_message"
-                                   role="button" aria-controls="raw_message">Raw Message</a></p>
-            <div class="collapse" id="raw_message">
-              <div class="card card-body">{{ message.raw_content }}</div>
-            </div>
-          {% elif message.media_type == 'sticker' or message.media_type == 'gif' %}
-            <img src="{{ message.media_url }}" class="img-thumbnail mx-auto d-block"/>
-          {% else %}
-            Unknown Mediatype!
+    </div>
+
+    <!-- Right: Content & Related -->
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-header">Content</div>
+        <div class="card-body">
+          {% if message.media_type == 'photo' %}
+            <img src="{{ message.media_url }}" class="img-fluid rounded mb-2" alt="Message Photo">
           {% endif %}
-        </li>
-        <li class="list-group-item text-end">
-          <div class="btn-group btn-group-sm">
-            <a class="btn btn-outline-success">Accept</a>
-            <a class="btn btn-outline-danger">Decline</a>
+          {% if message.media_type in 'text' 'photo' %}
+            <p class="mb-0">{{ message.content }}</p>
+          {% elif message.media_type in 'sticker' 'gif' %}
+            <img src="{{ message.media_url }}" class="img-fluid rounded" alt="Media">
+          {% else %}
+            <p class="text-muted mb-0">Unknown media type: {{ message.media_type }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Related Info -->
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <div class="card h-100">
+            <div class="card-header">Participant</div>
+            <div class="card-body">
+              <strong>{{ message.participant.display_name }}</strong><br>
+              <small class="text-muted">Reg: {{ message.participant.reg_id|default:"-" }}</small>
+            </div>
           </div>
-        </li>
-      </ul>
+        </div>
+        {% if message.event %}
+        <div class="col-sm-6">
+          <div class="card h-100">
+            <div class="card-header">Event</div>
+            <div class="card-body">
+              <strong>{{ message.event.name }}</strong><br>
+              <small class="text-muted">{{ message.event.starts_at|date:"d.m.Y" }}</small>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">Actions</div>
+        <div class="card-body d-flex gap-2">
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+          </form>
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject</button>
+          </form>
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
-
 {% endblock %}

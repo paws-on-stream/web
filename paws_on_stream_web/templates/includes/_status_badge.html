@@ -1,0 +1,29 @@
+{# Status badge helper — renders consistent Bootstrap badges for common statuses #}
+{# Usage: {% include "includes/_status_badge.html" with status=message.status %} #}
+{# Maps status strings to Bootstrap badge variants #}
+
+{% if status == "pending" %}
+  <span class="badge bg-warning text-dark">Pending</span>
+{% elif status == "approved" %}
+  <span class="badge bg-success">Approved</span>
+{% elif status == "rejected" %}
+  <span class="badge bg-danger">Rejected</span>
+{% elif status == "displayed" %}
+  <span class="badge bg-info text-dark">Displayed</span>
+{% elif status == "online" %}
+  <span class="badge bg-success">Online</span>
+{% elif status == "offline" %}
+  <span class="badge bg-secondary">Offline</span>
+{% elif status == "maintenance" %}
+  <span class="badge bg-warning text-dark">Maintenance</span>
+{% elif status == "active" %}
+  <span class="badge bg-success">Active</span>
+{% elif status == "inactive" %}
+  <span class="badge bg-secondary">Inactive</span>
+{% elif status == "banned" %}
+  <span class="badge bg-danger">Banned</span>
+{% elif status == "muted" %}
+  <span class="badge bg-info">Muted</span>
+{% else %}
+  <span class="badge bg-secondary">{{ status }}</span>
+{% endif %}

@@ -1,46 +1,117 @@
 {% extends "base.html" %}
+{% load django_tables2 %}
 
-{% block title %}Participant — Paws on Stream{% endblock %}
+{% block title %}Event — {{ event.name }}{% endblock %}
 
 {% block content %}
-  <div class="container">
-    <div class="card">
-      <div class="card-header"><h1>Event - {{ event.name }}</h1>
-      </div>
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item">
-          <div class="row">
-            <div class="col"><b>Name:</b> {{ event.name }}
-            </div>
-            <div class="col"><b>Aktiv:</b> {{ event.is_active }}</div>
-          </div>
-          <div class="row">
-            <div class="col"><b>Beginn:</b> {{ event.starts_at }}</div>
-            <div class="col"><b>Ende:</b> {{ event.ends_at }}</div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h5>Einstellungen:</h5>
-          <div class="row">
-            <div class="col"><b>Bot aktiv:</b> {{ event.allow_messages }}
-            </div>
-          </div>
-          <div class="row">
-            <div class="col"><b>Bot modus:</b>
-              {% if event.display_mode %}{{ event.display_mode }}{% else %}{{ settings.display_mode }}
-                (Default) {% endif %}</div>
-          </div>
-          <div class="row">
-            <div class="col"><b>Bot Scoll Geschwindigkeit:</b>
-              {% if event.scroll_speed_px %}{{ event.scroll_speed_px }}{% else %}{{ settings.scroll_speed_px }}
-                (Default) {% endif %}</div>
-          </div>
-        </li>
-      </ul>
-    </div>
-    </li>
-    </ul>
-  </div>
-  </div>
+  {% include "includes/_detail_header.html" with detail_list_url="streaming:event_list" detail_name=event.name badges=badges show_edit=True show_delete=True %}
 
+  <div class="row g-3">
+    <!-- Left: Attributes -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header">Details</div>
+        <dl class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Active</dt>
+            <dd>{{ event.is_active|yesno:"Yes,No" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Starts At</dt>
+            <dd>{{ event.starts_at|date:"d.m.Y H:i" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Ends At</dt>
+            <dd>{{ event.ends_at|date:"d.m.Y H:i" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Allow Messages</dt>
+            <dd>{{ event.allow_messages|yesno:"Yes,No" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Created</dt>
+            <dd>{{ event.created_at|date:"d.m.Y H:i" }}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Right: Settings & Stats -->
+    <div class="col-md-8">
+      <!-- Settings Overrides -->
+      <div class="card mb-3">
+        <div class="card-header">Event Settings</div>
+        <dl class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Display Mode</dt>
+            <dd>
+              {% if event.display_mode %}
+                {{ event.get_display_mode_display }}
+              {% else %}
+                {{ settings.display_mode }} <span class="text-muted">(Default)</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Scroll Speed (px)</dt>
+            <dd>
+              {% if event.scroll_speed_px %}
+                {{ event.scroll_speed_px }}
+              {% else %}
+                {{ settings.scroll_speed_px }} <span class="text-muted">(Default)</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Display Duration (sec)</dt>
+            <dd>
+              {% if event.display_duration_sec %}
+                {{ event.display_duration_sec }}
+              {% else %}
+                {{ settings.display_duration_sec }} <span class="text-muted">(Default)</span>
+              {% endif %}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Stats -->
+      <div class="card mb-3">
+        <div class="card-header">Statistics</div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-sm-4">
+              <h3 class="mb-0">{{ event_message_count|default:0 }}</h3>
+              <small class="text-muted">Total Messages</small>
+            </div>
+            <div class="col-sm-4">
+              <h3 class="mb-0">{{ event_approved_count|default:0 }}</h3>
+              <small class="text-muted">Approved</small>
+            </div>
+            <div class="col-sm-4">
+              <h3 class="mb-0">{{ settings|default:"" }}</h3>
+              <small class="text-muted">Participants</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">Actions</div>
+        <div class="card-body d-flex gap-2">
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="toggle_active" class="btn btn-primary btn-sm">
+              {{ event.is_active|yesno:"Deactivate,Activate" }}
+            </button>
+          </form>
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}

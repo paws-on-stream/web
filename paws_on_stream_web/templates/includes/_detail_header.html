@@ -1,0 +1,38 @@
+{% load django_tables2 %}
+{# Detail header: back link (left) + entity title + action buttons (right) #}
+{# Context vars: #}
+{#   detail_list_url  — name for "back to list" link #}
+{#   detail_name      — display name / title #}
+{#   detail_url       — (optional) URL name for this instance #}
+{#   show_edit        — bool, show edit button #}
+{#   show_delete      — bool, show delete button #}
+{#   badges           — (optional) list of {label, variant} dicts #}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url detail_list_url %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Zurück
+    </a>
+    <h1 class="h2 mb-0">{{ detail_name }}</h1>
+    {% if badges %}
+      {% for badge in badges %}
+        <span class="badge bg-{{ badge.variant }}">{{ badge.label }}</span>
+      {% endfor %}
+    {% endif %}
+  </div>
+  <div class="btn-toolbar gap-2">
+    {% if show_edit %}
+      <a href="#" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-pencil"></i> Edit
+      </a>
+    {% endif %}
+    {% if show_delete %}
+      <form method="post" class="d-inline" action="#" onsubmit="return confirm('Wirklich löschen?')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </form>
+    {% endif %}
+  </div>
+</div>

@@ -265,7 +265,19 @@ class MessageListView(SingleTableView):
 
 class MessageDetailView(DetailView):
     model = Message
+    template_name = "streaming/message_detail.html"
+    context_object_name = "message"
 
+    def get_object(self, *args, **kwargs):
+        obj = super().get_object(*args, **kwargs)
+        return obj.select_related("participant", "event")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        msg = self.object
+        badges = [{"label": msg.get_status_display(), "variant": msg.status}]
+        ctx["badges"] = badges
+        return ctx
 
 class EventListView(ListView):
     queryset = Event.objects.order_by("starts_at")
@@ -281,6 +293,14 @@ class EventDetailView(DetailView):
     model = Event
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["settings"] = Settings.get_settings()
-        return context
+        ctx = super().get_context_data(**kwargs)
+        event = self.object
+        from core.models import Settings
+        from streaming.models import Message
+
+        badges = [{"label": "Active" if event.is_active else "Inactive", "variant": "active" if event.is_active else "inactive"}]
+        ctx["badges"] = badges
+        ctx["settings"] = Settings.get_settings()
+        ctx["event_message_count"] = Message.objects.filter(event=event).count()
+        ctx["event_approved_count"] = Message.objects.filter(event=event, status="approved").count()
+        return ctx

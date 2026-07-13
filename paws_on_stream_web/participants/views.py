@@ -42,3 +42,25 @@ class ParticipantListView(SingleTableView):
 
 class ParticipantDetailView(DetailView):
     model = Participant
+
+    def get_context_data(self, **kwargs):
+        from streaming.models import Message
+
+        ctx = super().get_context_data(**kwargs)
+        p = self.object
+
+        badges = []
+        if p.banned:
+            badges.append({"label": "Banned", "variant": "danger"})
+        if p.muted_until:
+            badges.append({"label": "Muted", "variant": "info"})
+        if p.checked_in:
+            badges.append({"label": "Checked In", "variant": "success"})
+        ctx["badges"] = badges
+
+        messages = Message.objects.filter(participant=p).order_by("-created_at")
+        ctx["recent_messages"] = messages[:10]
+        ctx["participant_message_count"] = messages.count()
+        ctx["participant_approved_count"] = messages.filter(status="approved").count()
+        ctx["participant_rejected_count"] = messages.filter(status="rejected").count()
+        return ctx

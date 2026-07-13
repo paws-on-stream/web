@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block title %}Device — {{ object.hostname }}{% endblock %}
+
+{% block content %}
+  {% include "includes/_detail_header.html" with detail_list_url="core:device_list" detail_name=object.hostname badges=badges show_edit=True show_delete=True %}
+
+  <div class="row g-3">
+    <!-- Left: Attributes -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header">Details</div>
+        <dl class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Device ID</dt>
+            <dd><code>{{ object.device_id }}</code></dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Hostname</dt>
+            <dd><code>{{ object.hostname }}</code></dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Location</dt>
+            <dd>{{ object.location|default:"-" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Active</dt>
+            <dd>{% include "includes/_status_badge.html" with status=object.is_active|yesno:"active,inactive" %}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Last Seen</dt>
+            <dd>{{ object.last_seen|default:"Never" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Updated</dt>
+            <dd>{{ object.updated_at|date:"d.m.Y H:i" }}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Right: Logs -->
+    <div class="col-md-8">
+      <!-- Recent Display Logs -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Recent Display Logs</span>
+          <small class="text-muted">Last 10</small>
+        </div>
+        <div class="card-body p-0">
+          {% if recent_logs %}
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Message</th>
+                  <th>Displayed At</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                  <td>{{ log.message.participant.display_name }}</td>
+                  <td class="text-truncate" style="max-width: 300px;">{{ log.message.content|default:"[Media]" }}</td>
+                  <td>{{ log.displayed_at|date:"d.m.Y H:i" }}</td>
+                  <td>{{ log.display_duration_actual|default:"-" }}s</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="p-3 text-muted">No display logs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">Actions</div>
+        <div class="card-body d-flex gap-2">
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="activate" class="btn btn-success btn-sm">Activate</button>
+          </form>
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="deactivate" class="btn btn-warning btn-sm">Deactivate</button>
+          </form>
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -111,3 +111,15 @@ class DisplayDeviceListView(SingleTableView):
 
 class DisplayDeviceDetailView(DetailView):
     model = DisplayDevice
+
+    def get_context_data(self, **kwargs):
+        from core.models import DisplayLog
+
+        ctx = super().get_context_data(**kwargs)
+        d = self.object
+
+        badges = [{"label": "Active" if d.is_active else "Inactive", "variant": "success" if d.is_active else "secondary"}]
+        ctx["badges"] = badges
+
+        ctx["recent_logs"] = DisplayLog.objects.filter(device=d).order_by("-displayed_at")[:10]
+        return ctx
