@@ -268,9 +268,7 @@ class MessageDetailView(DetailView):
     template_name = "streaming/message_detail.html"
     context_object_name = "message"
 
-    def get_object(self, *args, **kwargs):
-        obj = super().get_object(*args, **kwargs)
-        return obj.select_related("participant", "event")
+    queryset = Message.objects.select_related("participant", "event").all()
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -295,8 +293,6 @@ class EventDetailView(DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         event = self.object
-        from core.models import Settings
-        from streaming.models import Message
 
         badges = [{"label": "Active" if event.is_active else "Inactive", "variant": "active" if event.is_active else "inactive"}]
         ctx["badges"] = badges

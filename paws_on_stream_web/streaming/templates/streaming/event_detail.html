@@ -30,7 +30,7 @@
           </div>
           <div class="list-group-item d-flex justify-content-between">
             <dt>Created</dt>
-            <dd>{{ event.created_at|date:"d.m.Y H:i" }}</dd>
+            <dd>{{ event.starts_at|date:"d.m.Y H:i" }}</dd>
           </div>
         </dl>
       </div>
@@ -87,10 +87,6 @@
             <div class="col-sm-4">
               <h3 class="mb-0">{{ event_approved_count|default:0 }}</h3>
               <small class="text-muted">Approved</small>
-            </div>
-            <div class="col-sm-4">
-              <h3 class="mb-0">{{ settings|default:"" }}</h3>
-              <small class="text-muted">Participants</small>
             </div>
           </div>
         </div>

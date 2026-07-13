@@ -34,7 +34,7 @@
           </div>
           <div class="list-group-item d-flex justify-content-between">
             <dt>Updated</dt>
-            <dd>{{ object.updated_at|date:"d.m.Y H:i" }}</dd>
+            <dd>{{ object.last_seen|date:"d.m.Y H:i"|default:"-" }}</dd>
           </div>
         </dl>
       </div>
