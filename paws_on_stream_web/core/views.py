@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from django_tables2 import SingleTableView
 from django.views.generic import DetailView, TemplateView
+from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -118,8 +118,15 @@ class DisplayDeviceDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         d = self.object
 
-        badges = [{"label": "Active" if d.is_active else "Inactive", "variant": "success" if d.is_active else "secondary"}]
+        badges = [
+            {
+                "label": "Active" if d.is_active else "Inactive",
+                "variant": "success" if d.is_active else "secondary",
+            }
+        ]
         ctx["badges"] = badges
 
-        ctx["recent_logs"] = DisplayLog.objects.filter(device=d).order_by("-displayed_at")[:10]
+        ctx["recent_logs"] = DisplayLog.objects.filter(device=d).order_by(
+            "-displayed_at"
+        )[:10]
         return ctx

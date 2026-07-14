@@ -277,6 +277,7 @@ class MessageDetailView(DetailView):
         ctx["badges"] = badges
         return ctx
 
+
 class EventListView(ListView):
     queryset = Event.objects.order_by("starts_at")
     context_object_name = "events"
@@ -294,9 +295,16 @@ class EventDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         event = self.object
 
-        badges = [{"label": "Active" if event.is_active else "Inactive", "variant": "active" if event.is_active else "inactive"}]
+        badges = [
+            {
+                "label": "Active" if event.is_active else "Inactive",
+                "variant": "active" if event.is_active else "inactive",
+            }
+        ]
         ctx["badges"] = badges
         ctx["settings"] = Settings.get_settings()
         ctx["event_message_count"] = Message.objects.filter(event=event).count()
-        ctx["event_approved_count"] = Message.objects.filter(event=event, status="approved").count()
+        ctx["event_approved_count"] = Message.objects.filter(
+            event=event, status="approved"
+        ).count()
         return ctx

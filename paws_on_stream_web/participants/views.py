@@ -1,5 +1,5 @@
-from django_tables2 import SingleTableView
 from django.views.generic import DetailView
+from django_tables2 import SingleTableView
 from rest_framework import viewsets
 
 from participants.models import Participant
