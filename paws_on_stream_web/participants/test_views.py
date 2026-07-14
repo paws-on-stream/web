@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core.cache import cache
 from django.test import override_settings
 from rest_framework import status
@@ -136,3 +138,34 @@ class ParticipantDeleteViewTest(APITestCase):
     def test_delete_not_found(self):
         response = self.client.delete("/api/v1/participants/999/")
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
+class ParticipantRegStatusCheckViewTest(APITestCase):
+    def setUp(self):
+        self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
+        cache.clear()
+        self.participant = ParticipantFactory(telegram_id=111222333, checked_in=False)
+
+    @patch("participants.views.sync_participant_status")
+    def test_check_status_success(self, mock_sync):
+        mock_sync.return_value = True
+        response = self.client.get("/api/v1/participants/111222333/check_status/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["changed"] is True
+        assert response.json()["participant"]["telegram_id"] == 111222333
+
+    @patch("participants.views.sync_participant_status")
+    def test_check_status_not_found(self, mock_sync):
+        response = self.client.get("/api/v1/participants/999999999/check_status/")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_sync.assert_not_called()
+
+    @patch("participants.views.sync_participant_status")
+    def test_check_status_upstream_error(self, mock_sync):
+        from participants.reg_sync import RegSyncError
+
+        mock_sync.side_effect = RegSyncError("Registration API is unreachable.")
+        response = self.client.get("/api/v1/participants/111222333/check_status/")
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        assert "unreachable" in response.json()["detail"]

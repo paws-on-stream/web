@@ -1,11 +1,15 @@
 from django.urls import reverse
-from django.views.generic import DetailView, UpdateView, DeleteView
+from django.views.generic import DeleteView, DetailView, UpdateView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from participants.models import Participant
-from participants.serializers import ParticipantCreateSerializer, ParticipantSerializer
-from participants.tables import ParticipantTable
+from .forms import ParticipantForm
+from .models import Participant
+from .reg_sync import RegSyncError, sync_participant_status
+from .serializers import ParticipantCreateSerializer, ParticipantSerializer
+from .tables import ParticipantTable
 
 
 class ParticipantViewSet(viewsets.ModelViewSet):
@@ -15,6 +19,27 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return ParticipantCreateSerializer
         return ParticipantSerializer
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"(?P<telegram_id>\d+)/check_status",
+    )
+    def check_status(self, request, telegram_id=None):
+        participant = Participant.objects.filter(telegram_id=telegram_id).first()
+        if not participant:
+            return Response(
+                {"detail": f"Participant with telegram_id={telegram_id} not found."},
+                status=404,
+            )
+
+        try:
+            changed = sync_participant_status(participant)
+        except RegSyncError as exc:
+            return Response({"detail": str(exc)}, status=502)
+
+        serializer = self.get_serializer(participant)
+        return Response({"changed": changed, "participant": serializer.data})
 
 
 class ParticipantListView(SingleTableView):
@@ -71,7 +96,7 @@ class ParticipantDetailView(DetailView):
 
 class ParticipantUpdateView(UpdateView):
     model = Participant
-    fields = ["telegram_id", "reg_id", "display_name", "checked_in", "banned", "muted_until"]
+    form_class = ParticipantForm
     template_name = "participants/participant_form.html"
 
     def get_success_url(self):
