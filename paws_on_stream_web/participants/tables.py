@@ -9,7 +9,7 @@ from participants.models import Participant
 class ParticipantTable(tables.Table):
     """Table definition for the Participant model."""
 
-    select = tables.CheckBoxColumn(accessor="pk", order_by=False)
+    select = tables.CheckBoxColumn(accessor="pk")
 
     display_name = tables.Column(linkify=True, order_by="display_name")
     telegram_id = tables.Column(order_by="telegram_id")
