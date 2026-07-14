@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
-from django.views.generic import DetailView, TemplateView
+from django.urls import reverse
+from django.views.generic import DetailView, TemplateView, UpdateView, DeleteView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -85,6 +86,24 @@ class SettingsView(TemplateView):
         return context
 
 
+class SettingsUpdateView(UpdateView):
+    model = Settings
+    fields = [
+        "rate_limit_per_minute", "max_message_length", "bot_status",
+        "overlay_theme", "overlay_font_size", "auto_approve",
+        "display_duration_sec", "reg_api_url", "reg_api_key",
+        "status_check_interval", "require_event_active",
+        "display_mode", "scroll_speed_px",
+    ]
+    template_name = "core/settings_form.html"
+
+    def get_object(self, queryset=None):
+        return Settings.get_settings()
+
+    def get_success_url(self):
+        return reverse("core:settings")
+
+
 class DisplayDeviceListView(SingleTableView):
     model = DisplayDevice
     table_class = DisplayDeviceTable
@@ -129,4 +148,23 @@ class DisplayDeviceDetailView(DetailView):
         ctx["recent_logs"] = DisplayLog.objects.filter(device=d).order_by(
             "-displayed_at"
         )[:10]
+        ctx["detail_edit_url"] = "core:device_edit"
+        ctx["detail_delete_url"] = "core:device_delete"
         return ctx
+
+
+class DisplayDeviceUpdateView(UpdateView):
+    model = DisplayDevice
+    fields = ["device_id", "hostname", "location", "is_active"]
+    template_name = "core/device_form.html"
+
+    def get_success_url(self):
+        return reverse("core:device_list")
+
+
+class DisplayDeviceDeleteView(DeleteView):
+    model = DisplayDevice
+    template_name = "core/device_confirm_delete.html"
+
+    def get_success_url(self):
+        return reverse("core:device_list")

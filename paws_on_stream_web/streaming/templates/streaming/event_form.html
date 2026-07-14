@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{% if view.form.instance.pk %}Edit{% else %}New{% endif %} Event — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">{% if view.form.instance.pk %}Edit{% else %}New{% endif %} Event</h5>
+      <a href="{% url 'streaming:event_list' %}" class="btn btn-sm btn-outline-secondary">← Back</a>
+    </div>
+    <div class="card-body">
+      <form method="post" class="row g-3">
+        {% csrf_token %}
+        {{ form.as_p|default_if_none:'' }}
+        {% for field in form %}
+          <div class="col-md-6">
+            <div class="form-floating">
+              {% if field.name == "is_active" or field.name == "allow_messages" %}
+                {{ field }}
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              {% else %}
+                {{ field|addclass:"form-control" }}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {% endif %}
+              {% if field.errors %}
+                <div class="invalid-feedback d-block">{{ field.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+        <div class="col-12 d-flex gap-2 justify-content-end mt-3">
+          <a href="{% url 'streaming:event_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,8 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
 from core.models import DisplayDevice, DisplayLog, Settings
+from django.urls import reverse
 from django.utils import timezone
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, UpdateView, DeleteView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -275,6 +276,8 @@ class MessageDetailView(DetailView):
         msg = self.object
         badges = [{"label": msg.get_status_display(), "variant": msg.status}]
         ctx["badges"] = badges
+        ctx["detail_edit_url"] = None  # Messages are read-only
+        ctx["detail_delete_url"] = None  # Messages are read-only
         return ctx
 
 
@@ -307,4 +310,23 @@ class EventDetailView(DetailView):
         ctx["event_approved_count"] = Message.objects.filter(
             event=event, status="approved"
         ).count()
+        ctx["detail_edit_url"] = "streaming:event_edit"
+        ctx["detail_delete_url"] = "streaming:event_delete"
         return ctx
+
+
+class EventUpdateView(UpdateView):
+    model = Event
+    fields = ["name", "starts_at", "ends_at", "is_active", "allow_messages", "display_mode", "scroll_speed_px"]
+    template_name = "streaming/event_form.html"
+
+    def get_success_url(self):
+        return reverse("streaming:event_list")
+
+
+class EventDeleteView(DeleteView):
+    model = Event
+    template_name = "streaming/event_confirm_delete.html"
+
+    def get_success_url(self):
+        return reverse("streaming:event_list")

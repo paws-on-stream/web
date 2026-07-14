@@ -1,4 +1,5 @@
-from django.views.generic import DetailView
+from django.urls import reverse
+from django.views.generic import DetailView, UpdateView, DeleteView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 
@@ -63,4 +64,23 @@ class ParticipantDetailView(DetailView):
         ctx["participant_message_count"] = messages.count()
         ctx["participant_approved_count"] = messages.filter(status="approved").count()
         ctx["participant_rejected_count"] = messages.filter(status="rejected").count()
+        ctx["detail_edit_url"] = "participants:participant_edit"
+        ctx["detail_delete_url"] = "participants:participant_delete"
         return ctx
+
+
+class ParticipantUpdateView(UpdateView):
+    model = Participant
+    fields = ["telegram_id", "reg_id", "display_name", "checked_in", "banned", "muted_until"]
+    template_name = "participants/participant_form.html"
+
+    def get_success_url(self):
+        return reverse("participants:participant_list")
+
+
+class ParticipantDeleteView(DeleteView):
+    model = Participant
+    template_name = "participants/participant_confirm_delete.html"
+
+    def get_success_url(self):
+        return reverse("participants:participant_list")

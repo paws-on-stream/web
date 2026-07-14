@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Participant — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <h4 class="mb-3">Delete Participant</h4>
+      <p class="text-muted mb-4">Are you sure you want to delete <strong>"{{ object.display_name }}"</strong> (TG:{{ object.telegram_id }})?</p>
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'participants:participant_detail' object.pk %}" class="btn btn-outline-secondary me-2">Cancel</a>
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
