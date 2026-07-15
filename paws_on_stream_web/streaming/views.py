@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from core.models import DisplayDevice, DisplayLog, Settings
 from django.urls import reverse
 from django.utils import timezone
-from django.views.generic import DetailView, ListView, UpdateView, DeleteView
+from django.views.generic import DeleteView, DetailView, UpdateView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from streaming.models import Event, Message
 from streaming.sanitization import sanitize_content
 from streaming.serializers import EventSerializer, MessageSerializer
-from streaming.tables import MessageTable
+from streaming.tables import EventTable, MessageTable
 
 
 class EventViewSet(viewsets.ReadOnlyModelViewSet):
@@ -281,14 +281,28 @@ class MessageDetailView(DetailView):
         return ctx
 
 
-class EventListView(ListView):
-    queryset = Event.objects.order_by("starts_at")
-    context_object_name = "events"
+class EventListView(SingleTableView):
+    model = Event
+    table_class = EventTable
+    template_name = "streaming/event_list.html"
+    paginate_by = 20
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["settings"] = Settings.get_settings()
-        return context
+    def get_queryset(self):
+        return Event.objects.order_by("starts_at")
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        selected = request.POST.getlist("select")
+        events = Event.objects.filter(id__in=selected)
+
+        if action == "activate":
+            events.update(is_active=True)
+        elif action == "deactivate":
+            events.update(is_active=False)
+        elif action == "delete":
+            events.delete()
+
+        return self.get(request, *args, **kwargs)
 
 
 class EventDetailView(DetailView):
@@ -317,7 +331,15 @@ class EventDetailView(DetailView):
 
 class EventUpdateView(UpdateView):
     model = Event
-    fields = ["name", "starts_at", "ends_at", "is_active", "allow_messages", "display_mode", "scroll_speed_px"]
+    fields = [
+        "name",
+        "starts_at",
+        "ends_at",
+        "is_active",
+        "allow_messages",
+        "display_mode",
+        "scroll_speed_px",
+    ]
     template_name = "streaming/event_form.html"
 
     def get_success_url(self):

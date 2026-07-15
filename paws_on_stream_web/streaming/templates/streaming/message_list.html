@@ -4,20 +4,34 @@
 {% block title %}Messages — Paws on Stream{% endblock %}
 
 {% block content %}
-  <h1>Messages</h1>
-  <div class="container">
-    <form method="post" class="mb-3">
-      {% csrf_token %}
-      <div class="d-flex gap-2 align-items-center">
-        <select name="action" class="form-select form-select-sm w-auto">
-          <option value="approve">Approve Selected</option>
-          <option value="reject">Reject Selected</option>
-          <option value="delete">Delete Selected</option>
-        </select>
-        <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-      </div>
-    </form>
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h1 class="mb-0">Messages</h1>
+      <small class="text-muted">Moderate incoming messages</small>
+    </div>
+    <div class="col-auto">
+      <a href="{% url 'streaming:message_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Reload
+      </a>
+    </div>
+  </div>
 
-    {% render_table table %}
+  <div class="card">
+    <div class="card-body p-0">
+      <form method="post">
+        {% csrf_token %}
+        <div class="px-3 py-2 d-flex gap-2 align-items-center border-bottom bg-body-tertiary">
+          <span class="text-muted small">Bulk Actions:</span>
+          <select name="action" class="form-select form-select-sm" style="min-width: 160px;">
+            <option value="">— Choose action —</option>
+            <option value="approve">Approve Selected</option>
+            <option value="reject">Reject Selected</option>
+            <option value="delete">Delete Selected</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+        </div>
+        {% render_table table %}
+      </form>
+    </div>
   </div>
 {% endblock %}

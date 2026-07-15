@@ -1,38 +1,38 @@
 {% extends "base.html" %}
+{% load django_tables2 %}
 
-{% block title %}Messages — Paws on Stream{% endblock %}
+{% block title %}Events — Paws on Stream{% endblock %}
 
 {% block content %}
-  <h1>Events</h1>
-  <div class="container">
-    <table class="table table-striped">
-      <thead>
-      <tr>
-        <th>Name</th>
-        <th>Bot aktiv</th>
-        <th>Bot modus</th>
-        <th>Start</th>
-        <th>End</th>
-        <th></th>
-      </tr>
-      </thead>
-      <tbody class="table-group-divider">
-      {% for event in events %}
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h1 class="mb-0">Events</h1>
+      <small class="text-muted">Manage active convention events</small>
+    </div>
+    <div class="col-auto">
+      <a href="{% url 'streaming:event_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Reload
+      </a>
+    </div>
+  </div>
 
-        <tr>
-          <td>{{ event.name }}</td>
-          <td>{% if event.allow_messages %}<i class="bi bi-check"></i>{% else %}<i class="bi bi-x"></i>{% endif %}</td>
-          <td>{% if event.display_mode %}{{ event.display_mode }}{% else %}{{ settings.display_mode }}
-            (Default){% endif %}</td>
-          <td>{{ event.starts_at }}</td>
-          <td>{{ event.ends_at }}</td>
-          <td><a href="{% url 'streaming:event_detail' event.pk %}" class="btn btn-sm btn-outline-primary"><i
-            class="bi bi-search"></i></a>
-          </td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+  <div class="card">
+    <div class="card-body p-0">
+      <form method="post">
+        {% csrf_token %}
+        <div class="px-3 py-2 d-flex gap-2 align-items-center border-bottom bg-body-tertiary">
+          <span class="text-muted small">Bulk Actions:</span>
+          <select name="action" class="form-select form-select-sm" style="min-width: 160px;">
+            <option value="">— Choose action —</option>
+            <option value="activate">Activate Selected</option>
+            <option value="deactivate">Deactivate Selected</option>
+            <option value="delete">Delete Selected</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+        </div>
+        {% render_table table %}
+      </form>
+    </div>
   </div>
 
 {% endblock %}

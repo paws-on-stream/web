@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.urls import reverse
 
 
 class Event(models.Model):
@@ -33,6 +34,9 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.starts_at.strftime('%Y-%m-%d %H:%M')})"
+
+    def get_absolute_url(self):
+        return reverse("streaming:event_detail", kwargs={"pk": self.pk})
 
     def clean(self):
         from django.core.exceptions import ValidationError
@@ -107,3 +111,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.participant.display_name}: {self.content[:50]}..."
+
+    def get_absolute_url(self):
+        return reverse("streaming:message_detail", kwargs={"pk": self.pk})

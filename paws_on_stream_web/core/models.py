@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 
 class Settings(models.Model):
@@ -53,6 +54,9 @@ class DisplayDevice(models.Model):
 
     def __str__(self):
         return f"{self.hostname} ({self.device_id})"
+
+    def get_absolute_url(self):
+        return reverse("core:device_detail", kwargs={"pk": self.pk})
 
 
 class DisplayLog(models.Model):
