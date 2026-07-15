@@ -253,13 +253,19 @@ class MessageListView(SingleTableView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
         selected = request.POST.getlist("select")  # from checkbox column
+        allowed_actions = {"approve", "reject", "delete"}
+        if action not in allowed_actions:
+            return HttpResponseBadRequest("Unsupported message action.")
+        if not selected:
+            return HttpResponseBadRequest("No messages selected.")
+
         messages = Message.objects.filter(id__in=selected)
 
         if action == "approve":
             messages.update(status="approved", approved_at=timezone.now())
         elif action == "reject":
             messages.update(status="rejected")
-        elif action == "delete":
+        else:
             messages.delete()
 
         return self.get(request, *args, **kwargs)
@@ -294,13 +300,19 @@ class EventListView(SingleTableView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
         selected = request.POST.getlist("select")
+        allowed_actions = {"activate", "deactivate", "delete"}
+        if action not in allowed_actions:
+            return HttpResponseBadRequest("Unsupported event action.")
+        if not selected:
+            return HttpResponseBadRequest("No events selected.")
+
         events = Event.objects.filter(id__in=selected)
 
         if action == "activate":
             events.update(is_active=True)
         elif action == "deactivate":
             events.update(is_active=False)
-        elif action == "delete":
+        else:
             events.delete()
 
         return self.get(request, *args, **kwargs)

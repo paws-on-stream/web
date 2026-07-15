@@ -67,3 +67,17 @@ class ParticipantListPageFilterTest(TestCase):
         )
         assert response.status_code == 200
         assert self._result_ids(response) == {self.gamma.id}
+
+    def test_bulk_action_rejects_unknown_action(self):
+        response = self.client.post(
+            "/participants/participants/",
+            {"action": "nope", "select": [self.alpha.id]},
+        )
+        assert response.status_code == 400
+
+    def test_bulk_action_rejects_missing_selection(self):
+        response = self.client.post(
+            "/participants/participants/",
+            {"action": "ban"},
+        )
+        assert response.status_code == 400

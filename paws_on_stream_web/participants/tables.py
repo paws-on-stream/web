@@ -1,7 +1,7 @@
 """django-tables2 definitions for the participants app."""
 
 import django_tables2 as tables
-from django.utils.html import format_html, mark_safe
+from django.utils.html import format_html
 
 from participants.models import Participant
 
@@ -62,13 +62,13 @@ class ParticipantTable(tables.Table):
 
     def render_checked_in(self, record):
         if record.checked_in:
-            return mark_safe('<span class="badge bg-success">✓</span>')
-        return mark_safe('<span class="badge bg-secondary">✗</span>')
+            return format_html('<span class="badge bg-success">{}</span>', "✓")
+        return format_html('<span class="badge bg-secondary">{}</span>', "✗")
 
     def render_banned(self, record):
         if record.banned:
-            return mark_safe('<span class="badge bg-danger">Banned</span>')
-        return mark_safe('<span class="badge bg-success">Active</span>')
+            return format_html('<span class="badge bg-danger">{}</span>', "Banned")
+        return format_html('<span class="badge bg-success">{}</span>', "Active")
 
     def render_muted_until(self, record):
         if record.muted_until:

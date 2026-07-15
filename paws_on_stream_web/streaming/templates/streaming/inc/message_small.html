@@ -6,7 +6,7 @@
 
     <div class="flex-grow-1 me-3 min-w-0">
       <div class="d-flex align-items-center gap-2 mb-1">
-        <strong class="text-truncate" style="font-size: 0.95rem;">{{ message.participant.display_name }}</strong>
+        <strong class="text-truncate" style="font-size: 0.95rem;">{{ message.participant.display_name|escape }}</strong>
 
         {% if message.status == 'pending' %}
           <span class="badge rounded-pill bg-warning text-dark" style="font-size:0.7rem;"><i
@@ -18,7 +18,7 @@
         {% endif %}
         <small class="badge bg-light border text-secondary">{{ message.get_media_type_display }}</small>
         {% if message.event %}
-          <small class="badge bg-light border text-primary">{{ message.event.name }}</small>
+          <small class="badge bg-light border text-primary">{{ message.event.name|escape }}</small>
         {% endif %}
       </div>
       <p class="mb-0 text-truncate" style="font-size: 0.9rem; color: var(--bs-body-color);">
@@ -26,7 +26,7 @@
           {% if message.media_type == 'photo' %}
             <img src="{{ message.media_url }}" class="img-thumbnail" height="100px" width="100px"/>
           {% endif %}
-          {{ message.content }}
+          {{ message.content|escape }}
         {% elif message.media_type == 'sticker' or message.media_type == 'gif' %}
           <img src="{{ message.media_url }}" class="img-thumbnail" height="100px" width="100px"/>
         {% else %}

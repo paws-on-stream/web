@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from django.views.generic import DeleteView, DetailView, UpdateView
 from django_tables2 import SingleTableView
@@ -93,13 +94,19 @@ class ParticipantListView(SingleTableView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
         selected = request.POST.getlist("select")
+        allowed_actions = {"ban", "unban", "delete"}
+        if action not in allowed_actions:
+            return HttpResponseBadRequest("Unsupported participant action.")
+        if not selected:
+            return HttpResponseBadRequest("No participants selected.")
+
         participants = Participant.objects.filter(id__in=selected)
 
         if action == "ban":
             participants.update(banned=True)
         elif action == "unban":
             participants.update(banned=False, muted_until=None)
-        elif action == "delete":
+        else:
             participants.delete()
 
         return self.get(request, *args, **kwargs)

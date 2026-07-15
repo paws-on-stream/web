@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
-from django.views.generic import DetailView, TemplateView, UpdateView, DeleteView
+from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -116,13 +117,19 @@ class DisplayDeviceListView(SingleTableView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
         selected = request.POST.getlist("select")
+        allowed_actions = {"activate", "deactivate", "delete"}
+        if action not in allowed_actions:
+            return HttpResponseBadRequest("Unsupported device action.")
+        if not selected:
+            return HttpResponseBadRequest("No devices selected.")
+
         devices = DisplayDevice.objects.filter(id__in=selected)
 
         if action == "activate":
             devices.update(is_active=True)
         elif action == "deactivate":
             devices.update(is_active=False)
-        elif action == "delete":
+        else:
             devices.delete()
 
         return self.get(request, *args, **kwargs)

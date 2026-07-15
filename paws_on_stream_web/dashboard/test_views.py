@@ -42,3 +42,11 @@ class DashboardViewTest(TestCase):
     def test_missing_action_returns_400(self):
         response = self.client.post("/", {"message_id": self.message.pk})
         assert response.status_code == 400
+
+    def test_message_content_is_escaped(self):
+        TextMessageFactory(status="pending", content="<script>alert('xss')</script>")
+        response = self.client.get("/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "&lt;script&gt;alert" in content
+        assert "<script>alert('xss')</script>" not in content
