@@ -1,4 +1,5 @@
 from django.test import TestCase
+from participants.factories import ParticipantFactory
 from streaming.factories import TextMessageFactory
 
 
@@ -43,6 +44,48 @@ class DashboardViewTest(TestCase):
         response = self.client.post("/", {"message_id": self.message.pk})
         assert response.status_code == 400
 
+    def test_unsupported_action_returns_400(self):
+        response = self.client.post(
+            "/",
+            {
+                "message_id": self.message.pk,
+                "action": "unsupported",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_missing_message_returns_404(self):
+        response = self.client.post(
+            "/",
+            {
+                "message_id": "00000000-0000-0000-0000-000000000000",
+                "action": "approve",
+            },
+        )
+        assert response.status_code == 404
+
+    def test_approve_non_pending_message_returns_400(self):
+        approved_message = TextMessageFactory(status="approved")
+        response = self.client.post(
+            "/",
+            {
+                "message_id": approved_message.pk,
+                "action": "approve",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_reject_non_pending_message_returns_400(self):
+        rejected_message = TextMessageFactory(status="rejected")
+        response = self.client.post(
+            "/",
+            {
+                "message_id": rejected_message.pk,
+                "action": "reject",
+            },
+        )
+        assert response.status_code == 400
+
     def test_message_content_is_escaped(self):
         TextMessageFactory(status="pending", content="<script>alert('xss')</script>")
         response = self.client.get("/")
@@ -50,3 +93,28 @@ class DashboardViewTest(TestCase):
         content = response.content.decode()
         assert "&lt;script&gt;alert" in content
         assert "<script>alert('xss')</script>" not in content
+
+    def test_dashboard_shows_only_pending_messages(self):
+        pending_message = TextMessageFactory(
+            status="pending",
+            content="pending-visible",
+        )
+        TextMessageFactory(status="approved", content="approved-hidden")
+
+        response = self.client.get("/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert pending_message.content in content
+        assert "approved-hidden" not in content
+
+    def test_kpis_are_calculated_in_context(self):
+        ParticipantFactory.create_batch(2)
+        TextMessageFactory.create_batch(3, status="pending")
+        TextMessageFactory.create_batch(2, status="approved")
+
+        response = self.client.get("/")
+        assert response.status_code == 200
+        kpis = {item["id"]: item["value"] for item in response.context["kpis"]}
+        assert kpis["msg-pending"] == 4  # includes self.message from setUp
+        assert kpis["participants"] >= 3  # includes participants from message factories
+        assert kpis["msg-rate"] >= 0
