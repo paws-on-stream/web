@@ -71,9 +71,10 @@
                   aria-label="Close"></button>
         </div>
         <div class="offcanvas-body d-md-flex flex-column p-0 pt-lg-3 overflow-y-auto">
+          {% with current_ns=request.resolver_match.namespace|default:"" current_url_name=request.resolver_match.url_name|default:"" %}
           <ul class="nav flex-column">
             <li class="nav-item">
-              <a class="nav-link d-flex align-items-center gap-2 active" aria-current="page"
+              <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'dashboard' %} active{% endif %}" {% if current_ns == 'dashboard' %}aria-current="page"{% endif %}
                  href="{% url 'dashboard:dashboard' %}">
                 <i class="bi bi-columns-gap" aria-hidden="true"></i>
 
@@ -81,28 +82,28 @@
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link d-flex align-items-center gap-2" href="{% url 'streaming:message_list' %}">
+              <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'streaming' and 'message' in current_url_name %} active{% endif %}" {% if current_ns == 'streaming' and 'message' in current_url_name %}aria-current="page"{% endif %} href="{% url 'streaming:message_list' %}">
                 <i class="bi bi-chat-right-text" aria-hidden="true"></i>
 
                 Messages
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link d-flex align-items-center gap-2" href="{% url 'participants:participant_list' %}">
+              <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'participants' %} active{% endif %}" {% if current_ns == 'participants' %}aria-current="page"{% endif %} href="{% url 'participants:participant_list' %}">
                 <i class="bi bi-people" aria-hidden="true"></i>
 
                 Participants
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link d-flex align-items-center gap-2" href="{% url 'streaming:event_list' %}">
+              <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'streaming' and 'event' in current_url_name %} active{% endif %}" {% if current_ns == 'streaming' and 'event' in current_url_name %}aria-current="page"{% endif %} href="{% url 'streaming:event_list' %}">
                 <i class="bi bi-calendar3" aria-hidden="true"></i>
 
                 Events
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link d-flex align-items-center gap-2" href="{% url 'core:device_list' %}">
+              <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and 'device' in current_url_name %} active{% endif %}" {% if current_ns == 'core' and 'device' in current_url_name %}aria-current="page"{% endif %} href="{% url 'core:device_list' %}">
                 <i class="bi bi-display" aria-hidden="true"></i>
 
                 Devices
@@ -111,7 +112,7 @@
             <hr class="my-3">
             <ul class="nav flex-column mb-auto">
               <li class="nav-item">
-                <a class="nav-link d-flex align-items-center gap-2" href="{% url 'core:settings' %}">
+                <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and 'settings' in current_url_name %} active{% endif %}" {% if current_ns == 'core' and 'settings' in current_url_name %}aria-current="page"{% endif %} href="{% url 'core:settings' %}">
                   <i class="bi bi-gear" aria-hidden="true"></i>
 
                   Settings
@@ -125,6 +126,7 @@
                 </a>
               </li>
             </ul>
+          {% endwith %}
         </div>
       </div>
     </div>
