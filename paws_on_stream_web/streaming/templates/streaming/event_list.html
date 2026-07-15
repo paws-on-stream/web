@@ -9,7 +9,10 @@
       <h1 class="mb-0">Events</h1>
       <small class="text-muted">Manage active convention events</small>
     </div>
-    <div class="col-auto">
+    <div class="col-auto d-flex gap-2">
+      <a href="{% url 'streaming:event_create' %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg"></i> New Event
+      </a>
       <a href="{% url 'streaming:event_list' %}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-arrow-clockwise"></i> Reload
       </a>

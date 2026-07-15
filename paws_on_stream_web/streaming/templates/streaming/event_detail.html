@@ -96,16 +96,19 @@
       <div class="card">
         <div class="card-header">Actions</div>
         <div class="card-body d-flex gap-2">
-          <form method="post" action="#" class="d-inline">
+          <form method="post" action="{% url 'streaming:event_detail' event.pk %}" class="d-inline">
             {% csrf_token %}
-            <button type="submit" name="action" value="toggle_active" class="btn btn-primary btn-sm">
-              {{ event.is_active|yesno:"Deactivate,Activate" }}
+            <button type="submit" name="action" value="activate" class="btn btn-success btn-sm" {% if event.is_active %}disabled{% endif %}>
+              Activate
             </button>
           </form>
-          <form method="post" action="#" class="d-inline">
+          <form method="post" action="{% url 'streaming:event_detail' event.pk %}" class="d-inline">
             {% csrf_token %}
-            <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Delete</button>
+            <button type="submit" name="action" value="deactivate" class="btn btn-warning btn-sm" {% if not event.is_active %}disabled{% endif %}>
+              Deactivate
+            </button>
           </form>
+          <a href="{% url 'streaming:event_delete' event.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
         </div>
       </div>
     </div>

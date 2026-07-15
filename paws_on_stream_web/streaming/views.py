@@ -1,9 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
 from core.models import DisplayDevice, DisplayLog, Settings
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from django.utils import timezone
-from django.views.generic import DeleteView, DetailView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -308,6 +309,21 @@ class EventListView(SingleTableView):
 class EventDetailView(DetailView):
     model = Event
 
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        action = request.POST.get("action")
+
+        if action == "activate":
+            self.object.is_active = True
+            self.object.save(update_fields=["is_active"])
+        elif action == "deactivate":
+            self.object.is_active = False
+            self.object.save(update_fields=["is_active"])
+        else:
+            return HttpResponseBadRequest("Unsupported event action.")
+
+        return self.get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         event = self.object
@@ -330,6 +346,23 @@ class EventDetailView(DetailView):
 
 
 class EventUpdateView(UpdateView):
+    model = Event
+    fields = [
+        "name",
+        "starts_at",
+        "ends_at",
+        "is_active",
+        "allow_messages",
+        "display_mode",
+        "scroll_speed_px",
+    ]
+    template_name = "streaming/event_form.html"
+
+    def get_success_url(self):
+        return reverse("streaming:event_list")
+
+
+class EventCreateView(CreateView):
     model = Event
     fields = [
         "name",
