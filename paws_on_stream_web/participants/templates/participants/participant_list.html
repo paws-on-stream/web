@@ -16,6 +16,52 @@
     </div>
   </div>
 
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label for="q" class="form-label small text-muted mb-1">Search</label>
+          <input
+            id="q"
+            name="q"
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Name, Telegram ID, Reg ID"
+            value="{{ filters.q }}"
+          >
+        </div>
+        <div class="col-md-2">
+          <label for="checked_in" class="form-label small text-muted mb-1">Checked in</label>
+          <select id="checked_in" name="checked_in" class="form-select form-select-sm">
+            <option value="all" {% if filters.checked_in == "all" %}selected{% endif %}>All</option>
+            <option value="yes" {% if filters.checked_in == "yes" %}selected{% endif %}>Yes</option>
+            <option value="no" {% if filters.checked_in == "no" %}selected{% endif %}>No</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="banned" class="form-label small text-muted mb-1">Banned</label>
+          <select id="banned" name="banned" class="form-select form-select-sm">
+            <option value="all" {% if filters.banned == "all" %}selected{% endif %}>All</option>
+            <option value="yes" {% if filters.banned == "yes" %}selected{% endif %}>Yes</option>
+            <option value="no" {% if filters.banned == "no" %}selected{% endif %}>No</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="muted" class="form-label small text-muted mb-1">Muted</label>
+          <select id="muted" name="muted" class="form-select form-select-sm">
+            <option value="all" {% if filters.muted == "all" %}selected{% endif %}>All</option>
+            <option value="yes" {% if filters.muted == "yes" %}selected{% endif %}>Yes</option>
+            <option value="no" {% if filters.muted == "no" %}selected{% endif %}>No</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+          <a href="{% url 'participants:participant_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-body p-0">
       <form method="post">

@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.urls import reverse
 from django.views.generic import DeleteView, DetailView, UpdateView
 from django_tables2 import SingleTableView
@@ -49,7 +50,45 @@ class ParticipantListView(SingleTableView):
     paginate_by = 20
 
     def get_queryset(self):
-        return Participant.objects.all().order_by("-created_at")
+        queryset = Participant.objects.all().order_by("-created_at")
+
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = queryset.filter(
+                Q(display_name__icontains=query)
+                | Q(telegram_id__icontains=query)
+                | Q(reg_id__icontains=query)
+            )
+
+        checked_in = self.request.GET.get("checked_in", "all")
+        if checked_in == "yes":
+            queryset = queryset.filter(checked_in=True)
+        elif checked_in == "no":
+            queryset = queryset.filter(checked_in=False)
+
+        banned = self.request.GET.get("banned", "all")
+        if banned == "yes":
+            queryset = queryset.filter(banned=True)
+        elif banned == "no":
+            queryset = queryset.filter(banned=False)
+
+        muted = self.request.GET.get("muted", "all")
+        if muted == "yes":
+            queryset = queryset.filter(muted_until__isnull=False)
+        elif muted == "no":
+            queryset = queryset.filter(muted_until__isnull=True)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["filters"] = {
+            "q": self.request.GET.get("q", "").strip(),
+            "checked_in": self.request.GET.get("checked_in", "all"),
+            "banned": self.request.GET.get("banned", "all"),
+            "muted": self.request.GET.get("muted", "all"),
+        }
+        return context
 
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
