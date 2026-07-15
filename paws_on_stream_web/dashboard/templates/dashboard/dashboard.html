@@ -3,7 +3,13 @@
 {% block title %}Dashboard — Paws on Stream{% endblock %}
 
 {% block content %}
-  <h1>Dashboard</h1>
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h1 class="mb-0">Dashboard</h1>
+      <small class="text-muted">Quick moderation overview</small>
+    </div>
+  </div>
+
   <div class="container">
     <div class="row">
       {% for kpi in kpis %}
@@ -23,6 +29,9 @@
     {% for message in recent_messages %}
       {% include "streaming/inc/message_small.html" %}
     {% endfor %}
+    {% if not recent_messages %}
+      <div class="text-muted">No pending messages right now.</div>
+    {% endif %}
   </div>
 
 {% endblock %}

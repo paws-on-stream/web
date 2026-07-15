@@ -41,8 +41,22 @@
         <a class="btn btn-outline-primary" title="Details" href="{% url 'streaming:message_detail' message.pk %}">
           <i class="bi bi-search"></i></a>
         {% if message.status == 'pending' %}
-          <button class="btn btn-outline-success" title="Freigeben"><i class="bi bi-check"></i></button>
-          <button class="btn btn-outline-danger" title="Ablehnen"><i class="bi bi-x"></i></button>
+          <form method="post" action="{% url 'dashboard:dashboard' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="message_id" value="{{ message.pk }}">
+            <input type="hidden" name="action" value="approve">
+            <button type="submit" class="btn btn-outline-success" title="Freigeben">
+              <i class="bi bi-check"></i>
+            </button>
+          </form>
+          <form method="post" action="{% url 'dashboard:dashboard' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="message_id" value="{{ message.pk }}">
+            <input type="hidden" name="action" value="reject">
+            <button type="submit" class="btn btn-outline-danger" title="Ablehnen">
+              <i class="bi bi-x"></i>
+            </button>
+          </form>
         {% endif %}
       </div>
     </div>

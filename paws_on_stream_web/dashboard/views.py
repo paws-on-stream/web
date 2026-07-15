@@ -3,7 +3,9 @@
 from datetime import timedelta
 
 from core.models import DisplayDevice, Settings
-from django.shortcuts import render
+from django.http import HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from participants.models import Participant
 from rest_framework.decorators import api_view
@@ -12,10 +14,45 @@ from streaming.models import Event, Message
 from streaming.serializers import MessageSerializer
 
 
+def _apply_dashboard_message_action(message: Message, action: str) -> None:
+    if action == "approve":
+        if message.status != "pending":
+            raise ValueError("Only pending messages can be approved.")
+        message.status = "approved"
+        message.approved_at = timezone.now()
+        message.approved_by = None
+        message.save(update_fields=["status", "approved_at", "approved_by"])
+        return
+
+    if action == "reject":
+        if message.status != "pending":
+            raise ValueError("Only pending messages can be rejected.")
+        message.status = "rejected"
+        message.rejection_reason = "unknown"
+        message.save(update_fields=["status", "rejection_reason"])
+        return
+
+    raise ValueError(f"Unsupported dashboard action: {action}")
+
+
 def dashboard(request):
     """Main dashboard page."""
     now = timezone.now()
     five_min_ago = now - timedelta(minutes=5)
+
+    if request.method == "POST":
+        message_id = request.POST.get("message_id")
+        action = request.POST.get("action")
+        if not message_id or not action:
+            return HttpResponseBadRequest("Missing message_id or action.")
+
+        message = get_object_or_404(Message, pk=message_id)
+        try:
+            _apply_dashboard_message_action(message, action)
+        except ValueError as exc:
+            return HttpResponseBadRequest(str(exc))
+
+        return redirect(reverse("dashboard:dashboard"))
 
     pending_count = Message.objects.filter(status="pending").count()
     messages_rate = round(
