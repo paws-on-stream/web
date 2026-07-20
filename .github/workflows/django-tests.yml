@@ -32,4 +32,9 @@ jobs:
       - name: Run django migrations
         run: /github/home/.local/bin/poetry run paws_on_stream_web/manage.py migrate --no-input
       - name: Run django tests
-        run: /github/home/.local/bin/poetry run paws_on_stream_web/manage.py test paws_on_stream_web
+        run: >-
+          /github/home/.local/bin/poetry run coverage run
+          --source=paws_on_stream_web
+          paws_on_stream_web/manage.py test core participants streaming dashboard
+      - name: Enforce coverage
+        run: /github/home/.local/bin/poetry run coverage report --fail-under=80

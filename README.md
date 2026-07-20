@@ -33,17 +33,34 @@ In `.env`:
 - `DEBUG` – `True` oder `False`
 - `DATABASE_URL` – z. B. `postgres://...` oder `sqlite:///db.sqlite3`
 - `API_AUTH_TOKEN` – Token für alle `/api/` Requests (`X-API-Token` Header)
+- `BOT_API_AUTH_TOKEN` – optionaler, auf Bot-Endpunkte begrenzter Token
+- `DISPLAY_API_AUTH_TOKEN` – optionaler, auf Display-Endpunkte begrenzter Token
+- `TELEGRAM_OIDC_CLIENT_ID` / `TELEGRAM_OIDC_CLIENT_SECRET` – von BotFather
+  ausgestellte Zugangsdaten für den Dashboard-Login
+- `TELEGRAM_AUTH_BOOTSTRAP_IDS` – kommaseparierte Telegram-IDs der initialen
+  Administratoren; nach dem ersten Login wird die Freigabe in der Datenbank geführt
 
 ## API-Überblick
 
 Basis: `/api/v1/`
 
 - `messages/` + Actions: `pending`, `display`, `displayed`, `{id}/approve`, `{id}/reject`, `{id}/displayed`
+- `message/` (Bot-Kompatibilitäts-Alias für `POST`)
+- `health/` (`GET`, public, für Bot-/Probe-Checks)
+- `media/upload/` (`POST`, multipart Upload für Bot-Media)
+- `events/killswitch/` (`POST`, persistente Display-/Regie-Events)
 - `participants/` + Action: `participants/{telegram_id}/check_status/`
+- `participant/{telegram_id}/ban/`, `participant/{telegram_id}/mute/` (Bot-Aliase)
 - `events/`
 - `settings/`
 - `devices/` + Action: `register`
 - `logs/`
+
+Media-Uploads akzeptieren ausschließlich validiertes `image/webp` (statisch oder
+animiert), maximal 10 MB, 1280×1280 Pixel, 150 Frames und 10 Sekunden. Die API
+liefert eine stabile Asset-ID/URL sowie Format-, Animations-, Größen-, Dauer-,
+Frame-, Alpha- und SHA-256-Metadaten. Mediennachrichten referenzieren das Asset
+über `media_asset_id`; direkte externe Medien- oder Video-URLs werden abgelehnt.
 
 Beispiel:
 
@@ -59,6 +76,18 @@ curl -H "X-API-Token: $API_AUTH_TOKEN" http://127.0.0.1:8000/api/v1/messages/pen
 - Events UI: `/streaming/events/`
 - Settings UI: `/core/settings/`
 
+Alle Dashboard-Ansichten einschließlich lesender Seiten erfordern eine aktive
+Staff-Sitzung. Die gemeinsame Login-Seite unter `/auth/login/` unterstützt
+klassische Django-Staff-Konten und Telegram OpenID Connect.
+
+Telegram-Benutzer starten den OIDC-Flow über die gemeinsame Login-Seite.
+Zugelassen werden ausschließlich aktive Einträge unter **Django Admin →
+Telegram access**. Die numerische Telegram-ID ist die Identität; der Telegram-
+Benutzername dient nicht zur Autorisierung. Normale Freigaben erhalten Zugriff
+auf die Moderationsfunktionen, mit `is_admin` markierte Freigaben dürfen zusätzlich
+die Whitelist verwalten. Eine Deaktivierung beendet eine vorhandene Sitzung bei
+der nächsten Anfrage. Bot und Display verwenden weiterhin ihre separaten API-Tokens.
+
 ## Reg-System Sync
 
 Es gibt zwei Wege für den Check-in Sync:
@@ -73,7 +102,43 @@ poetry run python paws_on_stream_web/manage.py sync_reg_status
 
 Der Batch-Sync berücksichtigt `status_check_interval` aus den Settings und synchronisiert nur fällige Teilnehmer.
 
+Fehler einzelner Teilnehmer brechen den Batch nicht ab. Der Command verarbeitet
+bis zu 16 Teilnehmer parallel (`--workers`, Standard: 8) und schützt sich über
+eine Datenbank-Lease gegen überlappende Läufe.
+
+## Event-Sync
+
+Die externe Event-API und ein jq-Filter werden in den Settings konfiguriert.
+Der Filter muss eine JSON-Liste zurückgeben. Events werden über ihre externe ID
+idempotent angelegt beziehungsweise aktualisiert:
+
+```bash
+poetry run python paws_on_stream_web/manage.py sync_events
+```
+
+Die Synchronisierung ändert Name, Start und Ende. Lokale Moderationsfelder wie
+Aktivstatus, Display-Modus und `allow_messages` bleiben bei Updates erhalten.
+Beide Sync-Commands besitzen ein Datenbank-Lock. Beispiel-CronJobs für Kubernetes
+liegen unter `deploy/k8s/sync-cronjobs.yaml`.
+
 ## Entwicklung
+
+## Container-Image
+
+Der Workflow `.github/workflows/container-image.yml` baut das Produktionsimage
+bei Pull Requests ohne Push. Pushes auf den Default-Branch und Tags mit Präfix
+`v` veröffentlichen es unter:
+
+```text
+ghcr.io/paws-on-stream/web
+```
+
+Der Default-Branch erhält `latest`, jeder veröffentlichte Build zusätzlich einen
+unveränderlichen `sha-<commit>`-Tag. Versionstags wie `v1.2.3` erzeugen außerdem
+`1.2.3` und `1.2`. Für ein reproduzierbares Deployment sollte in den Kubernetes-
+Manifesten ein `sha-…`-Tag statt `latest` verwendet werden. Private GHCR-Pakete
+benötigen im Cluster ein `imagePullSecret`; alternativ kann das Paket in GitHub
+öffentlich geschaltet werden.
 
 ### Tests
 

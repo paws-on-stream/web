@@ -133,6 +133,10 @@ htmlcov/
 .tox/
 .nox/
 .coverage
+
+# Runtime uploads and OS metadata
+paws_on_stream_web/media/
+.DS_Store
 .coverage.*
 .cache
 nosetests.xml
