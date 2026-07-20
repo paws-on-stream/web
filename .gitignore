@@ -156,6 +156,10 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+testdb.sqlite
+
+# Frontend dependencies
+node_modules/
 
 # Flask stuff:
 instance/

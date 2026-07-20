@@ -5,6 +5,12 @@ jobs:
   django-tests:
     runs-on: ubuntu-latest
     container: "python:3.14"
+    env:
+      DEBUG: "False"
+      SECRET_KEY: ci-only-not-used-outside-github-actions
+      DATABASE_URL: postgres://dev_user:dev_pass@postgres:5432/dev_db
+      API_AUTH_TOKEN: ci-api-token
+      ALLOWED_HOSTS: testserver
     services:
       postgres:
         image: postgres
@@ -27,8 +33,6 @@ jobs:
           poetry-version: main
       - name: Install dependencies
         run: /github/home/.local/bin/poetry install --with dev
-      - name: Copy dev .env
-        run: cp -f dev/.env .env
       - name: Run django migrations
         run: /github/home/.local/bin/poetry run paws_on_stream_web/manage.py migrate --no-input
       - name: Run django tests
