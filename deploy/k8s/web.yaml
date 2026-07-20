@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paws-on-stream-media
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paws-on-stream-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paws-on-stream-web
+  template:
+    metadata:
+      labels:
+        app: paws-on-stream-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/paws-on-stream/web:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: paws-on-stream-web-env
+          readinessProbe:
+            httpGet:
+              path: /api/v1/readiness/
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/
+              port: 8000
+            periodSeconds: 20
+          volumeMounts:
+            - name: media
+              mountPath: /app/paws_on_stream_web/media
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: paws-on-stream-media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paws-on-stream-web
+spec:
+  selector:
+    app: paws-on-stream-web
+  ports:
+    - port: 80
+      targetPort: 8000

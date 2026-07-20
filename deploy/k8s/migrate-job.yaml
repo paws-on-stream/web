@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: paws-on-stream-migrate
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ghcr.io/paws-on-stream/web:latest
+          command:
+            - python
+            - paws_on_stream_web/manage.py
+            - migrate
+            - --noinput
+          envFrom:
+            - secretRef:
+                name: paws-on-stream-web-env

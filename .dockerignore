@@ -1,0 +1,9 @@
+.git
+.env
+.idea
+.ruff_cache
+.coverage
+node_modules
+**/__pycache__
+paws_on_stream_web/media
+paws_on_stream_web/testdb.sqlite

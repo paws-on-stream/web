@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: paws-on-stream-registration-sync
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: sync
+              image: ghcr.io/paws-on-stream/web:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - python
+                - paws_on_stream_web/manage.py
+                - sync_reg_status
+                - --workers
+                - "8"
+              envFrom:
+                - secretRef:
+                    name: paws-on-stream-web-env
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: paws-on-stream-cleanup
+spec:
+  schedule: "15 3 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: ghcr.io/paws-on-stream/web:latest
+              command:
+                - python
+                - paws_on_stream_web/manage.py
+                - cleanup_old_data
+                - --execute
+              envFrom:
+                - secretRef:
+                    name: paws-on-stream-web-env
+              volumeMounts:
+                - name: media
+                  mountPath: /app/paws_on_stream_web/media
+          volumes:
+            - name: media
+              persistentVolumeClaim:
+                claimName: paws-on-stream-media
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: paws-on-stream-event-sync
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: sync
+              image: ghcr.io/paws-on-stream/web:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - python
+                - paws_on_stream_web/manage.py
+                - sync_events
+              envFrom:
+                - secretRef:
+                    name: paws-on-stream-web-env
