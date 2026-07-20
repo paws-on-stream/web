@@ -30,7 +30,9 @@ class RegSyncParseTest(TestCase):
 
 class RegSyncDueParticipantsTest(TestCase):
     def setUp(self):
-        SettingsFactory(status_check_interval=300, reg_api_url="https://reg.example/api")
+        SettingsFactory(
+            status_check_interval=300, reg_api_url="https://reg.example/api"
+        )
 
     @patch("participants.reg_sync.fetch_reg_status")
     def test_syncs_only_due_participants(self, mock_fetch):
@@ -41,10 +43,11 @@ class RegSyncDueParticipantsTest(TestCase):
         )
         mock_fetch.return_value = parse_reg_status({"checked_in": True, "reg_id": 55})
 
-        synced, changed = sync_due_participants()
+        synced, changed, failed = sync_due_participants()
 
         assert synced == 1
         assert changed == 1
+        assert failed == 0
         due_participant.refresh_from_db()
         recent_participant.refresh_from_db()
         assert due_participant.checked_in is True
@@ -61,21 +64,38 @@ class RegSyncDueParticipantsTest(TestCase):
             {"checked_in": False, "reg_id": None}
         )
 
-        synced, changed = sync_due_participants()
+        synced, changed, failed = sync_due_participants()
 
         assert synced == 1
         assert changed == 0
+        assert failed == 0
+
+    @patch("participants.reg_sync.fetch_reg_status")
+    def test_one_failure_does_not_abort_remaining_participants(self, mock_fetch):
+        ParticipantFactory(last_status_check=None)
+        ParticipantFactory(last_status_check=None)
+        mock_fetch.side_effect = [
+            RegSyncError("temporary failure"),
+            parse_reg_status({"checked_in": True, "reg_id": 23}),
+        ]
+
+        synced, changed, failed = sync_due_participants()
+
+        assert synced == 1
+        assert changed == 1
+        assert failed == 1
 
 
 class SyncRegStatusCommandTest(TestCase):
     @patch("participants.management.commands.sync_reg_status.sync_due_participants")
     def test_command_prints_summary(self, mock_sync_due):
-        mock_sync_due.return_value = (3, 2)
+        mock_sync_due.return_value = (3, 2, 1)
         out = StringIO()
 
         call_command("sync_reg_status", stdout=out)
 
         assert "synced=3, changed=2" in out.getvalue()
+        assert "failed=1" in out.getvalue()
 
     @patch("participants.management.commands.sync_reg_status.sync_due_participants")
     def test_command_raises_on_sync_error(self, mock_sync_due):

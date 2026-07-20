@@ -43,12 +43,14 @@
         <div class="card-header">Content</div>
         <div class="card-body">
           {% if message.media_type == 'photo' %}
-            <img src="{{ message.media_url }}" class="img-fluid rounded mb-2" alt="Message Photo">
+            <img src="{{ message.media_asset.file.url }}" class="img-fluid rounded mb-2" alt="Message Photo">
           {% endif %}
-          {% if message.media_type in 'text' 'photo' %}
+          {% if message.media_type == 'text' or message.media_type == 'photo' %}
             <p class="mb-0">{{ message.content }}</p>
-          {% elif message.media_type in 'sticker' 'gif' %}
-            <img src="{{ message.media_url }}" class="img-fluid rounded" alt="Media">
+          {% elif message.media_type == 'sticker' %}
+            <img src="{{ message.media_asset.file.url }}" class="img-fluid rounded" alt="Sticker">
+          {% elif message.media_type == 'gif' %}
+            <img src="{{ message.media_asset.file.url }}" class="img-fluid rounded" alt="Animated WebP">
           {% else %}
             <p class="text-muted mb-0">Unknown media type: {{ message.media_type }}</p>
           {% endif %}
@@ -83,6 +85,7 @@
       <div class="card">
         <div class="card-header">Actions</div>
         <div class="card-body d-flex gap-2">
+          {% if message.status == "pending" %}
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}
             <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
@@ -91,6 +94,7 @@
             {% csrf_token %}
             <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject</button>
           </form>
+          {% endif %}
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}
             <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Delete</button>

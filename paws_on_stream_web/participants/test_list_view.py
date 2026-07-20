@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
@@ -8,6 +9,9 @@ from participants.factories import ParticipantFactory
 
 class ParticipantListPageFilterTest(TestCase):
     def setUp(self):
+        self.client.force_login(
+            get_user_model().objects.create_user("staff", is_staff=True)
+        )
         self.alpha = ParticipantFactory(
             display_name="Alpha Fox",
             telegram_id=1111,
@@ -73,11 +77,13 @@ class ParticipantListPageFilterTest(TestCase):
             "/participants/participants/",
             {"action": "nope", "select": [self.alpha.id]},
         )
-        assert response.status_code == 400
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/participants/participants/")
 
     def test_bulk_action_rejects_missing_selection(self):
         response = self.client.post(
             "/participants/participants/",
             {"action": "ban"},
         )
-        assert response.status_code == 400
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/participants/participants/")

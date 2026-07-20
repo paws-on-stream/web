@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from .models import DisplayDevice, DisplayLog, Settings
+from .models import DisplayDevice, DisplayLog, Settings, TelegramAccess
 
 
 @admin.register(Settings)
@@ -18,6 +18,7 @@ class SettingsAdmin(admin.ModelAdmin):
                     "rate_limit_per_minute",
                     "max_message_length",
                     "auto_approve",
+                    "spam_threshold",
                     "require_event_active",
                 )
             },
@@ -35,6 +36,10 @@ class SettingsAdmin(admin.ModelAdmin):
             },
         ),
         ("Registration API", {"fields": ("reg_api_url", "reg_api_key")}),
+        (
+            "Event API",
+            {"fields": ("event_api_url", "event_api_jsonq_filter")},
+        ),
         ("System", {"fields": ("status_check_interval", "updated_at")}),
     )
 
@@ -75,3 +80,18 @@ class DisplayLogAdmin(admin.ModelAdmin):
         return f"{obj.message.participant.display_name}: {obj.message.content[:50]}"
 
     message_preview.short_description = "Message"
+
+
+@admin.register(TelegramAccess)
+class TelegramAccessAdmin(admin.ModelAdmin):
+    list_display = (
+        "telegram_id",
+        "label",
+        "is_active",
+        "is_admin",
+        "user",
+        "last_login_at",
+    )
+    list_filter = ("is_active", "is_admin")
+    search_fields = ("telegram_id", "label", "user__username")
+    readonly_fields = ("user", "last_login_at", "created_at", "updated_at")

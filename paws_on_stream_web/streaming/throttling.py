@@ -1,5 +1,8 @@
 """Custom DRF throttling for Paws on Stream."""
 
+from collections.abc import Mapping
+
+from core.models import Settings
 from rest_framework.throttling import SimpleRateThrottle
 
 
@@ -13,13 +16,19 @@ class UserRateThrottle(SimpleRateThrottle):
     rate = "10/min"
     cache_alias = "default"
 
+    def get_rate(self):
+        configured = max(Settings.get_settings().rate_limit_per_minute, 1)
+        return f"{configured}/min"
+
     def get_cache_key(self, request, lookup_string):
         # Try authenticated user first
         if request.user and not request.user.is_anonymous:
-            return f"pows:ratelimit:{request.user.telegram_id}"
+            return f"pows:ratelimit:user:{request.user.pk}"
         # Fall back to extracting telegram_id from request body (POST /message/)
         telegram_id = (
-            request.data.get("telegram_id") if isinstance(request.data, dict) else None
+            request.data.get("telegram_id")
+            if isinstance(request.data, Mapping)
+            else None
         )
         if telegram_id:
             return f"pows:ratelimit:{telegram_id}"
@@ -33,7 +42,7 @@ def get_throttle_rate(request):
     Returns the telegram_id from the request body so the throttle key
     function can extract it.
     """
-    if isinstance(request.data, dict):
+    if isinstance(request.data, Mapping):
         telegram_id = request.data.get("telegram_id")
     else:
         telegram_id = None

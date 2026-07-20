@@ -1,12 +1,13 @@
 from django.urls import path
 
 from core.views import (
+    DisplayDeviceDeleteView,
     DisplayDeviceDetailView,
     DisplayDeviceListView,
     DisplayDeviceUpdateView,
-    DisplayDeviceDeleteView,
-    SettingsView,
+    DisplayLogListView,
     SettingsUpdateView,
+    SettingsView,
 )
 
 app_name = "core"
@@ -14,9 +15,7 @@ app_name = "core"
 urlpatterns = [
     path("settings/", SettingsView.as_view(), name="settings"),
     path("settings/edit/", SettingsUpdateView.as_view(), name="settings_edit"),
-    path(
-        "devices/", DisplayDeviceListView.as_view(), name="device_list"
-    ),
+    path("devices/", DisplayDeviceListView.as_view(), name="device_list"),
     path(
         "devices/<int:pk>/",
         DisplayDeviceDetailView.as_view(),
@@ -32,4 +31,5 @@ urlpatterns = [
         DisplayDeviceDeleteView.as_view(),
         name="device_delete",
     ),
+    path("logs/", DisplayLogListView.as_view(), name="log_list"),
 ]

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import factory
 from participants.factories import ParticipantFactory
 
-from streaming.models import Event, Message
+from streaming.models import Event, MediaAsset, Message
 
 
 class EventFactory(factory.django.DjangoModelFactory):
@@ -35,6 +35,18 @@ class MessageFactory(factory.django.DjangoModelFactory):
 
     id = factory.Faker("uuid4")
     participant = factory.SubFactory(ParticipantFactory)
+
+
+class MediaAssetFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = MediaAsset
+        django_get_or_create = ("telegram_file_unique_id",)
+
+    file = factory.django.FileField(filename="asset.bin", data=b"payload")
+    media_type = "photo"
+    telegram_file_id = factory.Sequence(lambda n: f"tg-file-{n}")
+    telegram_file_unique_id = factory.Sequence(lambda n: f"tg-unique-{n}")
+    sha256 = factory.Sequence(lambda n: f"{n:064x}")
 
 
 class TextMessageFactory(MessageFactory):

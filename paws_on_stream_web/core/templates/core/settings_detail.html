@@ -5,8 +5,11 @@
 {% block content %}
   <div class="container">
     <div class="card">
-      <div class="card-header">
-        <h1>Settings</h1>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h1 class="mb-0">Settings</h1>
+        <a href="{% url 'core:settings_edit' %}" class="btn btn-sm btn-primary">
+          <i class="bi bi-pencil"></i> Edit
+        </a>
       </div>
       <ul class="list-group list-group-flush">
         <li class="list-group-item">
@@ -14,6 +17,7 @@
           <div class="row">
             <div class="col"><b>Bot Status:</b> {{ settings.get_bot_status_display }}</div>
             <div class="col"><b>Auto Approve:</b> {{ settings.auto_approve }}</div>
+            <div class="col"><b>Spam Threshold:</b> {{ settings.spam_threshold }}</div>
           </div>
           <div class="row mt-2">
             <div class="col"><b>Require Event Active:</b> {{ settings.require_event_active }}</div>
@@ -50,8 +54,15 @@
             <div class="col"><b>Registration API URL:</b> {{ settings.reg_api_url|default:"-" }}</div>
           </div>
           <div class="row mt-2">
-            <div class="col"><b>Registration API Key:</b> {{ settings.reg_api_key|default:"-" }}</div>
+            <div class="col"><b>Registration API Key:</b> {% if settings.reg_api_key %}••••••••{% else %}-{% endif %}</div>
           </div>
+        </li>
+
+        <li class="list-group-item">
+          <h6 class="text-muted mb-3">Event-API</h6>
+          <div><b>URL:</b> {{ settings.event_api_url|default:"-" }}</div>
+          <div class="mt-2"><b>jq-Filter:</b></div>
+          <pre class="bg-light border rounded p-2 mb-0 text-wrap"><code>{{ settings.event_api_jsonq_filter|default:"-" }}</code></pre>
         </li>
       </ul>
     </div>

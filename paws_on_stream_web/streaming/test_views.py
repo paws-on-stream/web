@@ -1,7 +1,8 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from django.core.cache import cache
 from django.test import override_settings
+from django.utils import timezone
 from participants.factories import ParticipantFactory
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -98,8 +99,13 @@ class MessageCreateViewTest(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
         cache.clear()
-        self.participant = ParticipantFactory()
-        self.event = EventFactory()
+        self.participant = ParticipantFactory(checked_in=True)
+        self.event = EventFactory(
+            is_active=True,
+            allow_messages=True,
+            starts_at=timezone.now() - timedelta(hours=1),
+            ends_at=timezone.now() + timedelta(hours=1),
+        )
 
     def test_create_message(self):
         data = {
@@ -206,3 +212,66 @@ class MessageViewSetAuthTest(APITestCase):
         cache.clear()
         response = self.client.get("/api/v1/messages/")
         assert response.status_code == status.HTTP_200_OK
+
+
+@override_settings(
+    API_AUTH_TOKEN=TEST_TOKEN,
+    REST_FRAMEWORK={
+        "DEFAULT_THROTTLE_CLASSES": ["streaming.throttling.UserRateThrottle"],
+        "DEFAULT_THROTTLE_RATES": {"user": "1/min"},
+    },
+)
+class DisplayActionsThrottleExemptionTest(APITestCase):
+    def setUp(self):
+        from core.factories import DisplayDeviceFactory
+
+        self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN, HTTP_X_DEVICE_ID="pi-01")
+        cache.clear()
+        self.participant = ParticipantFactory()
+        self.event = EventFactory()
+        self.message = TextMessageFactory(
+            participant=self.participant,
+            event=self.event,
+            status="approved",
+        )
+        DisplayDeviceFactory(device_id="pi-01", hostname="pi-01.local")
+
+    def test_display_messages_not_throttled(self):
+        first = self.client.get("/api/v1/messages/display/")
+        second = self.client.get("/api/v1/messages/display/")
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_200_OK
+
+    def test_mark_displayed_not_throttled(self):
+        from core.models import DisplayLog
+
+        payload = {"device_id": "pi-01"}
+        first = self.client.post(
+            f"/api/v1/messages/{self.message.id}/displayed/",
+            payload,
+            format="json",
+        )
+        second = self.client.post(
+            f"/api/v1/messages/{self.message.id}/displayed/",
+            payload,
+            format="json",
+        )
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_200_OK
+        assert DisplayLog.objects.filter(
+            message=self.message,
+            device__device_id="pi-01",
+        ).exists()
+
+    def test_mark_displayed_saves_duration_actual(self):
+        from core.models import DisplayLog
+
+        payload = {"device_id": "pi-01", "display_duration_actual": 9}
+        response = self.client.post(
+            f"/api/v1/messages/{self.message.id}/displayed/",
+            payload,
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        log = DisplayLog.objects.get(message=self.message, device__device_id="pi-01")
+        assert log.display_duration_actual == 9

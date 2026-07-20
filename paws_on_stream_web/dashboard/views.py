@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 from core.models import DisplayDevice, Settings
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -41,6 +41,8 @@ def dashboard(request):
     five_min_ago = now - timedelta(minutes=5)
 
     if request.method == "POST":
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return HttpResponseForbidden("Staff login required.")
         message_id = request.POST.get("message_id")
         action = request.POST.get("action")
         if not message_id or not action:

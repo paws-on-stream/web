@@ -17,6 +17,7 @@ class MessageTableTest(TestCase):
         html = MessageTable([self.message]).as_html(self.request)
         assert "badge bg-success" in html
         assert self.message.participant.get_absolute_url() in html
+        assert self.message.get_absolute_url() in html
 
 
 class EventTableTest(TestCase):

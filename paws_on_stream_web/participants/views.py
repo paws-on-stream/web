@@ -1,17 +1,27 @@
+import logging
+from datetime import timedelta
+
+from core.auth import StaffRequiredMixin
+from django.contrib import messages as django_messages
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
+from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import DeleteView, DetailView, UpdateView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .forms import ParticipantForm
 from .models import Participant
 from .reg_sync import RegSyncError, sync_participant_status
 from .serializers import ParticipantCreateSerializer, ParticipantSerializer
 from .tables import ParticipantTable
+
+logger = logging.getLogger(__name__)
 
 
 class ParticipantViewSet(viewsets.ModelViewSet):
@@ -38,13 +48,68 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         try:
             changed = sync_participant_status(participant)
         except RegSyncError as exc:
-            return Response({"detail": str(exc)}, status=502)
+            logger.warning(
+                "Reg sync failed for telegram_id=%s, falling back to local status: %s",
+                telegram_id,
+                exc,
+            )
+            serializer = self.get_serializer(participant)
+            return Response(
+                {
+                    "changed": False,
+                    "fallback": True,
+                    "detail": str(exc),
+                    "participant": serializer.data,
+                }
+            )
 
         serializer = self.get_serializer(participant)
         return Response({"changed": changed, "participant": serializer.data})
 
 
-class ParticipantListView(SingleTableView):
+class ParticipantBanAPIView(APIView):
+    def post(self, request, telegram_id):
+        participant = Participant.objects.filter(telegram_id=telegram_id).first()
+        if not participant:
+            return Response(
+                {"detail": f"Participant with telegram_id={telegram_id} not found."},
+                status=404,
+            )
+
+        participant.banned = True
+        participant.save(update_fields=["banned"])
+        return Response({"status": "ok", "telegram_id": telegram_id})
+
+
+class ParticipantMuteAPIView(APIView):
+    def post(self, request, telegram_id):
+        participant = Participant.objects.filter(telegram_id=telegram_id).first()
+        if not participant:
+            return Response(
+                {"detail": f"Participant with telegram_id={telegram_id} not found."},
+                status=404,
+            )
+
+        try:
+            minutes = int(request.data.get("minutes", 0))
+        except (TypeError, ValueError):
+            return Response(
+                {"minutes": ["A whole number of minutes is required."]},
+                status=400,
+            )
+        if minutes <= 0:
+            return Response(
+                {"minutes": ["Ensure this value is greater than zero."]}, status=400
+            )
+
+        participant.muted_until = timezone.now() + timedelta(minutes=minutes)
+        participant.save(update_fields=["muted_until"])
+        return Response(
+            {"status": "ok", "telegram_id": telegram_id, "minutes": minutes}
+        )
+
+
+class ParticipantListView(StaffRequiredMixin, SingleTableView):
     model = Participant
     table_class = ParticipantTable
     template_name = "participants/participant_list.html"
@@ -96,39 +161,95 @@ class ParticipantListView(SingleTableView):
         selected = request.POST.getlist("select")
         allowed_actions = {"ban", "unban", "delete"}
         if action not in allowed_actions:
-            return HttpResponseBadRequest("Unsupported participant action.")
+            django_messages.error(request, "Bitte eine gültige Aktion auswählen.")
+            return redirect("participants:participant_list")
         if not selected:
-            return HttpResponseBadRequest("No participants selected.")
+            django_messages.warning(
+                request,
+                "Bitte mindestens einen Participant auswählen.",
+            )
+            return redirect("participants:participant_list")
 
         participants = Participant.objects.filter(id__in=selected)
 
         if action == "ban":
             participants.update(banned=True)
+            django_messages.success(request, "Ausgewählte Participants wurden gebannt.")
         elif action == "unban":
             participants.update(banned=False, muted_until=None)
+            django_messages.success(
+                request,
+                "Ausgewählte Participants wurden entbannt.",
+            )
         else:
             participants.delete()
+            django_messages.success(
+                request,
+                "Ausgewählte Participants wurden gelöscht.",
+            )
 
-        return self.get(request, *args, **kwargs)
+        return redirect("participants:participant_list")
 
 
-class ParticipantDetailView(DetailView):
+class ParticipantDetailView(StaffRequiredMixin, DetailView):
     model = Participant
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        action = request.POST.get("action")
+
+        if action == "ban":
+            self.object.banned = True
+            self.object.save(update_fields=["banned"])
+            return redirect(self.object.get_absolute_url())
+
+        if action == "unban":
+            self.object.banned = False
+            self.object.muted_until = None
+            self.object.save(update_fields=["banned", "muted_until"])
+            return redirect(self.object.get_absolute_url())
+
+        if action == "mute":
+            try:
+                minutes = int(request.POST.get("minutes", "15"))
+            except (TypeError, ValueError):
+                return HttpResponseBadRequest("Mute duration must be an integer.")
+            if minutes <= 0:
+                return HttpResponseBadRequest(
+                    "Mute duration must be greater than zero."
+                )
+
+            self.object.muted_until = timezone.now() + timedelta(minutes=minutes)
+            self.object.save(update_fields=["muted_until"])
+            return redirect(self.object.get_absolute_url())
+
+        if action == "unmute":
+            self.object.muted_until = None
+            self.object.save(update_fields=["muted_until"])
+            return redirect(self.object.get_absolute_url())
+
+        if action == "delete":
+            self.object.delete()
+            return redirect("participants:participant_list")
+
+        return HttpResponseBadRequest("Unsupported participant action.")
 
     def get_context_data(self, **kwargs):
         from streaming.models import Message
 
         ctx = super().get_context_data(**kwargs)
         p = self.object
+        is_muted = bool(p.muted_until and p.muted_until > timezone.now())
 
         badges = []
         if p.banned:
             badges.append({"label": "Banned", "variant": "danger"})
-        if p.muted_until:
+        if is_muted:
             badges.append({"label": "Muted", "variant": "info"})
         if p.checked_in:
             badges.append({"label": "Checked In", "variant": "success"})
         ctx["badges"] = badges
+        ctx["is_muted"] = is_muted
 
         messages = Message.objects.filter(participant=p).order_by("-created_at")
         ctx["recent_messages"] = messages[:10]
@@ -140,7 +261,7 @@ class ParticipantDetailView(DetailView):
         return ctx
 
 
-class ParticipantUpdateView(UpdateView):
+class ParticipantUpdateView(StaffRequiredMixin, UpdateView):
     model = Participant
     form_class = ParticipantForm
     template_name = "participants/participant_form.html"
@@ -149,7 +270,7 @@ class ParticipantUpdateView(UpdateView):
         return reverse("participants:participant_list")
 
 
-class ParticipantDeleteView(DeleteView):
+class ParticipantDeleteView(StaffRequiredMixin, DeleteView):
     model = Participant
     template_name = "participants/participant_confirm_delete.html"
 

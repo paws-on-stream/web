@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block title %}Display Logs — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h1 class="mb-0">Display Logs</h1>
+      <small class="text-muted">History of displayed messages per device</small>
+    </div>
+    <div class="col-auto">
+      <a href="{% url 'core:log_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Reload
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      {% render_table table %}
+    </div>
+  </div>
+{% endblock %}

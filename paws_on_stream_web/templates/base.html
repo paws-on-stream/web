@@ -109,6 +109,13 @@
                 Devices
               </a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and 'log' in current_url_name %} active{% endif %}" {% if current_ns == 'core' and 'log' in current_url_name %}aria-current="page"{% endif %} href="{% url 'core:log_list' %}">
+                <i class="bi bi-list-ul" aria-hidden="true"></i>
+
+                Display Logs
+              </a>
+            </li>
             <hr class="my-3">
             <ul class="nav flex-column mb-auto">
               <li class="nav-item">
@@ -119,11 +126,20 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link d-flex align-items-center gap-2" href="#">
-                  <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-
-                  Sign out
+                {% if request.user.is_authenticated %}
+                <form method="post" action="{% url 'telegram_logout' %}">
+                  {% csrf_token %}
+                  <button class="nav-link d-flex align-items-center gap-2 border-0 bg-transparent" type="submit">
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                    Abmelden ({{ request.user.get_full_name|default:request.user.username }})
+                  </button>
+                </form>
+                {% else %}
+                <a class="nav-link d-flex align-items-center gap-2" href="{% url 'login' %}">
+                  <i class="bi bi-telegram" aria-hidden="true"></i>
+                  Mit Telegram anmelden
                 </a>
+                {% endif %}
               </li>
             </ul>
           {% endwith %}
@@ -140,5 +156,43 @@
   </div>
 </div>
 <script src="{% static 'js/app.js' %}"></script>
+<script>
+  document.addEventListener("change", function (event) {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
+      return;
+    }
+
+    const table = target.closest("table");
+    if (!table) {
+      return;
+    }
+
+    const rowCheckboxes = table.querySelectorAll(
+      "tbody input[type='checkbox'][name='select']"
+    );
+    if (!rowCheckboxes.length) {
+      return;
+    }
+
+    const isHeaderCheckbox = !!target.closest("thead");
+    if (isHeaderCheckbox) {
+      rowCheckboxes.forEach((checkbox) => {
+        checkbox.checked = target.checked;
+      });
+      return;
+    }
+
+    const headerCheckbox = table.querySelector("thead input[type='checkbox']");
+    if (!headerCheckbox) {
+      return;
+    }
+    const checkedCount = table.querySelectorAll(
+      "tbody input[type='checkbox'][name='select']:checked"
+    ).length;
+    headerCheckbox.checked = checkedCount === rowCheckboxes.length;
+    headerCheckbox.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+  });
+</script>
 </body>
 </html>

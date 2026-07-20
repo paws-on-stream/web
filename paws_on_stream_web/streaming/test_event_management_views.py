@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
@@ -8,6 +9,11 @@ from streaming.models import Event
 
 
 class EventManagementViewTest(TestCase):
+    def setUp(self):
+        self.client.force_login(
+            get_user_model().objects.create_user("staff", is_staff=True)
+        )
+
     def test_event_create_page_renders(self):
         response = self.client.get("/streaming/events/new/")
         assert response.status_code == 200

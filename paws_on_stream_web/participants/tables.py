@@ -53,7 +53,7 @@ class ParticipantTable(tables.Table):
             '<span class="d-inline-flex align-items-center justify-content-center '
             'rounded-circle text-white fw-bold" style="width:28px;height:28px;'
             'background-color:{};font-size:0.75rem;">{}</span>'
-            '<span>{}</span></span>',
+            "<span>{}</span></span>",
             bg_color,
             initials,
             record.display_name or "Unknown",

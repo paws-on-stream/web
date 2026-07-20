@@ -1,24 +1,35 @@
 from datetime import UTC, datetime
 
-from django.http import HttpResponseBadRequest
+from django.contrib import messages
+from django.db import connection
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
 from django_tables2 import SingleTableView
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from core.auth import StaffRequiredMixin, StrictStaffRequiredMixin
+from core.forms import SettingsForm
 from core.models import DisplayDevice, DisplayLog, Settings
 from core.serializers import (
     DisplayDeviceSerializer,
     DisplayLogSerializer,
     SettingsSerializer,
 )
-from core.tables import DisplayDeviceTable
+from core.tables import DisplayDeviceTable, DisplayLogTable
 
 
 class SettingsViewSet(viewsets.GenericViewSet):
     serializer_class = SettingsSerializer
+
+    def get_throttles(self):
+        if self.action == "retrieve":
+            return []
+        return super().get_throttles()
 
     def retrieve(self, request, pk=None):  # noqa: ARG002
         settings = Settings.get_settings()
@@ -44,9 +55,59 @@ class SettingsViewSet(viewsets.GenericViewSet):
         return Response(serializer.data)
 
 
+class HealthAPIView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):  # noqa: ARG002
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+        except Exception:
+            return Response(
+                {"status": "degraded", "db_reachable": False},
+                status=503,
+            )
+
+        return Response({"status": "ok", "db_reachable": True})
+
+
+class ReadinessAPIView(HealthAPIView):
+    pass
+
+
+class MetricsAPIView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):  # noqa: ARG002
+        from participants.models import Participant
+        from streaming.models import Message
+
+        counts = {
+            status: Message.objects.filter(status=status).count()
+            for status in ("pending", "approved", "rejected")
+        }
+        lines = [
+            "# TYPE paws_messages gauge",
+            f'paws_messages{{status="pending"}} {counts["pending"]}',
+            f'paws_messages{{status="approved"}} {counts["approved"]}',
+            f'paws_messages{{status="rejected"}} {counts["rejected"]}',
+            "# TYPE paws_participants gauge",
+            f"paws_participants {Participant.objects.count()}",
+        ]
+        return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+
+
 class DisplayDeviceViewSet(viewsets.ModelViewSet):
     queryset = DisplayDevice.objects.all()
     serializer_class = DisplayDeviceSerializer
+
+    def get_throttles(self):
+        if self.action == "register":
+            return []
+        return super().get_throttles()
 
     @action(detail=False, methods=["post"])
     def register(self, request):  # noqa: ARG002
@@ -76,7 +137,7 @@ class DisplayLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DisplayLogSerializer
 
 
-class SettingsView(TemplateView):
+class SettingsView(StrictStaffRequiredMixin, TemplateView):
     template_name = "core/settings_detail.html"
 
     def get_context_data(self, **kwargs):
@@ -87,15 +148,9 @@ class SettingsView(TemplateView):
         return context
 
 
-class SettingsUpdateView(UpdateView):
+class SettingsUpdateView(StrictStaffRequiredMixin, UpdateView):
     model = Settings
-    fields = [
-        "rate_limit_per_minute", "max_message_length", "bot_status",
-        "overlay_theme", "overlay_font_size", "auto_approve",
-        "display_duration_sec", "reg_api_url", "reg_api_key",
-        "status_check_interval", "require_event_active",
-        "display_mode", "scroll_speed_px",
-    ]
+    form_class = SettingsForm
     template_name = "core/settings_form.html"
 
     def get_object(self, queryset=None):
@@ -105,7 +160,7 @@ class SettingsUpdateView(UpdateView):
         return reverse("core:settings")
 
 
-class DisplayDeviceListView(SingleTableView):
+class DisplayDeviceListView(StaffRequiredMixin, SingleTableView):
     model = DisplayDevice
     table_class = DisplayDeviceTable
     template_name = "core/device_list.html"
@@ -119,24 +174,47 @@ class DisplayDeviceListView(SingleTableView):
         selected = request.POST.getlist("select")
         allowed_actions = {"activate", "deactivate", "delete"}
         if action not in allowed_actions:
-            return HttpResponseBadRequest("Unsupported device action.")
+            messages.error(request, "Bitte eine gültige Aktion auswählen.")
+            return redirect("core:device_list")
         if not selected:
-            return HttpResponseBadRequest("No devices selected.")
+            messages.warning(request, "Bitte mindestens ein Device auswählen.")
+            return redirect("core:device_list")
 
         devices = DisplayDevice.objects.filter(id__in=selected)
 
         if action == "activate":
             devices.update(is_active=True)
+            messages.success(request, "Ausgewählte Devices wurden aktiviert.")
         elif action == "deactivate":
             devices.update(is_active=False)
+            messages.success(request, "Ausgewählte Devices wurden deaktiviert.")
         else:
             devices.delete()
+            messages.success(request, "Ausgewählte Devices wurden gelöscht.")
 
-        return self.get(request, *args, **kwargs)
+        return redirect("core:device_list")
 
 
-class DisplayDeviceDetailView(DetailView):
+class DisplayDeviceDetailView(StaffRequiredMixin, DetailView):
     model = DisplayDevice
+    template_name = "core/device_detail.html"
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        action = request.POST.get("action")
+
+        if action == "activate":
+            self.object.is_active = True
+            self.object.save(update_fields=["is_active"])
+            return redirect(self.object.get_absolute_url())
+        if action == "deactivate":
+            self.object.is_active = False
+            self.object.save(update_fields=["is_active"])
+            return redirect(self.object.get_absolute_url())
+        if action == "delete":
+            self.object.delete()
+            return redirect("core:device_list")
+        return HttpResponseBadRequest("Unsupported device action.")
 
     def get_context_data(self, **kwargs):
         from core.models import DisplayLog
@@ -160,7 +238,20 @@ class DisplayDeviceDetailView(DetailView):
         return ctx
 
 
-class DisplayDeviceUpdateView(UpdateView):
+class DisplayLogListView(StaffRequiredMixin, SingleTableView):
+    model = DisplayLog
+    table_class = DisplayLogTable
+    template_name = "core/log_list.html"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return DisplayLog.objects.select_related(
+            "message__participant",
+            "device",
+        ).order_by("-displayed_at")
+
+
+class DisplayDeviceUpdateView(StaffRequiredMixin, UpdateView):
     model = DisplayDevice
     fields = ["device_id", "hostname", "location", "is_active"]
     template_name = "core/device_form.html"
@@ -169,7 +260,7 @@ class DisplayDeviceUpdateView(UpdateView):
         return reverse("core:device_list")
 
 
-class DisplayDeviceDeleteView(DeleteView):
+class DisplayDeviceDeleteView(StaffRequiredMixin, DeleteView):
     model = DisplayDevice
     template_name = "core/device_confirm_delete.html"
 

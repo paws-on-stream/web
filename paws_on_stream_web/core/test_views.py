@@ -156,3 +156,31 @@ class DisplayLogListViewTest(APITestCase):
         data = {"message": 1, "device": 1}
         response = self.client.post("/api/v1/logs/", data, format="json")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+@override_settings(
+    API_AUTH_TOKEN=TEST_TOKEN,
+    REST_FRAMEWORK={
+        "DEFAULT_THROTTLE_CLASSES": ["streaming.throttling.UserRateThrottle"],
+        "DEFAULT_THROTTLE_RATES": {"user": "1/min"},
+    },
+)
+class CoreDisplayEndpointsThrottleExemptionTest(APITestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN, HTTP_X_DEVICE_ID="pi-01")
+
+    def test_settings_retrieve_not_throttled(self):
+        first = self.client.get("/api/v1/settings/1/")
+        second = self.client.get("/api/v1/settings/1/")
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_200_OK
+
+    def test_device_register_not_throttled(self):
+        payload = {"device_id": "pi-01", "hostname": "pi-01.local"}
+        first = self.client.post("/api/v1/devices/register/", payload, format="json")
+        second = self.client.post("/api/v1/devices/register/", payload, format="json")
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_200_OK

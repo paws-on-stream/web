@@ -59,6 +59,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.TelegramWhitelistMiddleware",
+    "core.middleware.DashboardLoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "streaming.middleware.ApiTokenMiddleware",
@@ -133,10 +135,40 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # API Authentication
 # Static token for Bot/Display auth — set via environment variable
 API_AUTH_TOKEN = config("API_AUTH_TOKEN", default="")
+BOT_API_AUTH_TOKEN = config("BOT_API_AUTH_TOKEN", default=API_AUTH_TOKEN)
+DISPLAY_API_AUTH_TOKEN = config("DISPLAY_API_AUTH_TOKEN", default=API_AUTH_TOKEN)
+TELEGRAM_OIDC_CLIENT_ID = config("TELEGRAM_OIDC_CLIENT_ID", default="")
+TELEGRAM_OIDC_CLIENT_SECRET = config("TELEGRAM_OIDC_CLIENT_SECRET", default="")
+TELEGRAM_OIDC_DISCOVERY_URL = (
+    "https://oauth.telegram.org/.well-known/openid-configuration"
+)
+TELEGRAM_AUTH_BOOTSTRAP_IDS = {
+    int(value.strip())
+    for value in config("TELEGRAM_AUTH_BOOTSTRAP_IDS", default="").split(",")
+    if value.strip()
+}
+LOGIN_URL = "/auth/login/"
+LOGIN_REDIRECT_URL = "/"
+
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = [
+    origin for origin in config("CSRF_TRUSTED_ORIGINS", default="").split(",") if origin
+]
 
 # DRF configuration
 REST_FRAMEWORK = {

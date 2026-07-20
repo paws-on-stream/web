@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from participants.factories import ParticipantFactory
 from streaming.factories import TextMessageFactory
@@ -5,6 +6,9 @@ from streaming.factories import TextMessageFactory
 
 class DashboardViewTest(TestCase):
     def setUp(self):
+        self.client.force_login(
+            get_user_model().objects.create_user("staff", is_staff=True)
+        )
         self.message = TextMessageFactory(status="pending", content="Quick action")
 
     def test_dashboard_shows_quick_action_forms(self):

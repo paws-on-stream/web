@@ -16,9 +16,12 @@ class SettingsSerializer(serializers.ModelSerializer):
             "overlay_theme",
             "overlay_font_size",
             "auto_approve",
+            "spam_threshold",
             "display_duration_sec",
             "reg_api_url",
             "reg_api_key",
+            "event_api_url",
+            "event_api_jsonq_filter",
             "status_check_interval",
             "require_event_active",
             "display_mode",
@@ -26,6 +29,12 @@ class SettingsSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "updated_at"]
+        extra_kwargs = {
+            "reg_api_key": {"write_only": True},
+            "reg_api_url": {"write_only": True},
+            "event_api_url": {"write_only": True},
+            "event_api_jsonq_filter": {"write_only": True},
+        }
 
 
 class DisplayDeviceSerializer(serializers.ModelSerializer):

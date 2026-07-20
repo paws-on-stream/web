@@ -10,22 +10,24 @@ class MessageTable(tables.Table):
     """Table definition for the Message model."""
 
     select = tables.CheckBoxColumn(accessor="pk")
+    detail = tables.Column(empty_values=(), verbose_name="")
     participant = tables.Column(linkify=True, order_by="participant__display_name")
     event = tables.Column(order_by="event__starts_at", empty_values=())
+    content = tables.Column(order_by="content")
     media_type = tables.Column(order_by="media_type")
     status = tables.Column(order_by="status")
-    content = tables.Column(order_by="content")
     created_at = tables.Column(order_by="created_at", verbose_name="Created")
 
     class Meta:
         model = Message
         fields = (
             "select",
-            "participant",
-            "event",
+            "detail",
+            "content",
             "media_type",
             "status",
-            "content",
+            "participant",
+            "event",
             "created_at",
         )
         attrs = {"class": "table table-hover table-sm align-middle"}
@@ -34,6 +36,17 @@ class MessageTable(tables.Table):
         return format_html(
             '<input type="checkbox" name="select" value="{}" class="form-check-input">',
             record.pk,
+        )
+
+    def render_detail(self, record):
+        return format_html(
+            (
+                '<a href="{}" class="btn btn-sm btn-outline-primary" '
+                'title="Details" aria-label="Details">'
+                '<i class="bi bi-search"></i>'
+                "</a>"
+            ),
+            record.get_absolute_url(),
         )
 
     def render_event(self, record):

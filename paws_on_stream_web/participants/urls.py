@@ -1,10 +1,10 @@
 from django.urls import path
 
 from participants.views import (
+    ParticipantDeleteView,
     ParticipantDetailView,
     ParticipantListView,
     ParticipantUpdateView,
-    ParticipantDeleteView,
 )
 
 app_name = "participants"

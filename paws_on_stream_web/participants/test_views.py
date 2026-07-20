@@ -167,5 +167,8 @@ class ParticipantRegStatusCheckViewTest(APITestCase):
 
         mock_sync.side_effect = RegSyncError("Registration API is unreachable.")
         response = self.client.get("/api/v1/participants/111222333/check_status/")
-        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["changed"] is False
+        assert response.json()["fallback"] is True
+        assert response.json()["participant"]["telegram_id"] == 111222333
         assert "unreachable" in response.json()["detail"]

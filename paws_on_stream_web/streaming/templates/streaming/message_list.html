@@ -16,6 +16,48 @@
     </div>
   </div>
 
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-6">
+          <label for="q" class="form-label small text-muted mb-1">Search</label>
+          <input
+            id="q"
+            name="q"
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Content, participant name, Telegram ID"
+            value="{{ filters.q }}"
+          >
+        </div>
+        <div class="col-md-2">
+          <label for="status" class="form-label small text-muted mb-1">Status</label>
+          <select id="status" name="status" class="form-select form-select-sm">
+            <option value="all" {% if filters.status == "all" %}selected{% endif %}>All</option>
+            <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if filters.status == "rejected" %}selected{% endif %}>Rejected</option>
+            <option value="displayed" {% if filters.status == "displayed" %}selected{% endif %}>Displayed</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="media_type" class="form-label small text-muted mb-1">Media</label>
+          <select id="media_type" name="media_type" class="form-select form-select-sm">
+            <option value="all" {% if filters.media_type == "all" %}selected{% endif %}>All</option>
+            <option value="text" {% if filters.media_type == "text" %}selected{% endif %}>Text</option>
+            <option value="photo" {% if filters.media_type == "photo" %}selected{% endif %}>Photo</option>
+            <option value="gif" {% if filters.media_type == "gif" %}selected{% endif %}>GIF</option>
+            <option value="sticker" {% if filters.media_type == "sticker" %}selected{% endif %}>Sticker</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+          <a href="{% url 'streaming:message_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-body p-0">
       <form method="post">

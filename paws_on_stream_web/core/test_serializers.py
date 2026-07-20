@@ -23,6 +23,9 @@ class SettingsSerializerTest(TestCase):
         assert data["auto_approve"] == self.settings.auto_approve
         assert data["display_mode"] == self.settings.display_mode
         assert data["scroll_speed_px"] == self.settings.scroll_speed_px
+        assert "reg_api_key" not in data
+        assert "event_api_url" not in data
+        assert "event_api_jsonq_filter" not in data
 
     def test_update(self):
         data = {"rate_limit_per_minute": 20, "bot_status": "maintenance"}

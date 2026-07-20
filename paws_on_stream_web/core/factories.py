@@ -20,9 +20,12 @@ class SettingsFactory(factory.django.DjangoModelFactory):
     overlay_theme = "default"
     overlay_font_size = 24
     auto_approve = False
+    spam_threshold = 5
     display_duration_sec = 8
     reg_api_url = ""
     reg_api_key = ""
+    event_api_url = ""
+    event_api_jsonq_filter = ""
     status_check_interval = 300
     require_event_active = True
     display_mode = "chat"

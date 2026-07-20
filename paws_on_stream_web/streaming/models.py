@@ -2,19 +2,68 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
+
+
+class MediaAsset(models.Model):
+    """Persisted media uploaded by the bot."""
+
+    MEDIA_TYPES = [
+        ("photo", "Photo"),
+        ("gif", "GIF"),
+        ("sticker", "Sticker"),
+    ]
+
+    file = models.FileField(upload_to="media_assets/%Y/%m/")
+    media_type = models.CharField(max_length=16, choices=MEDIA_TYPES)
+    telegram_file_id = models.CharField(max_length=255)
+    telegram_file_unique_id = models.CharField(max_length=255, unique=True, blank=True)
+    sticker_emoji = models.CharField(max_length=64, blank=True, default="")
+    source_filename = models.CharField(max_length=255, blank=True, default="")
+    format = models.CharField(max_length=16, default="webp", editable=False)
+    animated = models.BooleanField(default=False)
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+    duration_ms = models.PositiveIntegerField(default=0)
+    frame_count = models.PositiveIntegerField(default=1)
+    has_alpha = models.BooleanField(default=False)
+    sha256 = models.CharField(max_length=64, db_index=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["media_type", "created_at"]),
+        ]
+
+    def __str__(self):
+        identifier = self.telegram_file_unique_id or self.telegram_file_id
+        return f"{self.media_type}:{identifier}"
+
+    def get_absolute_url(self):
+        return self.file.url
 
 
 class Event(models.Model):
     """Represents a convention event/session."""
 
+    DISPLAY_MODES = [
+        ("", "Global setting"),
+        ("chat", "Chat"),
+        ("crawling", "Crawling"),
+    ]
+
     name = models.CharField(max_length=128)
+    external_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     is_active = models.BooleanField(default=False)
     allow_messages = models.BooleanField(default=True)
     display_mode = models.CharField(
         max_length=16,
+        choices=DISPLAY_MODES,
         default="",
         blank=True,
         help_text="chat or crawling. null = use global setting",
@@ -31,6 +80,13 @@ class Event(models.Model):
             models.Index(fields=["is_active"]),
             models.Index(fields=["starts_at", "ends_at"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_active"],
+                condition=Q(is_active=True),
+                name="streaming_single_active_event",
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.starts_at.strftime('%Y-%m-%d %H:%M')})"
@@ -44,6 +100,31 @@ class Event(models.Model):
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValidationError({"ends_at": "End time must be after start time."})
         super().clean()
+
+
+class DisplayEvent(models.Model):
+    """Persistent operational event reported by a display client."""
+
+    EVENT_TYPES = [
+        ("killswitch", "Killswitch"),
+        ("pause", "Pause"),
+        ("resume", "Resume"),
+        ("clear", "Clear"),
+    ]
+
+    device = models.ForeignKey(
+        "core.DisplayDevice", on_delete=models.CASCADE, related_name="events"
+    )
+    event_type = models.CharField(max_length=16, choices=EVENT_TYPES)
+    occurred_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+        indexes = [models.Index(fields=["device", "occurred_at"])]
+
+    def __str__(self):
+        return f"{self.device.device_id}:{self.event_type}@{self.occurred_at}"
 
 
 class Message(models.Model):
@@ -82,6 +163,13 @@ class Message(models.Model):
         max_length=16, choices=MEDIA_TYPES, default="", blank=True
     )
     media_url = models.URLField(default="", blank=True)
+    media_asset = models.ForeignKey(
+        MediaAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="messages",
+    )
     sticker_emoji = models.CharField(max_length=64, default="", blank=True)
     spam_score = models.IntegerField(default=0)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="pending")

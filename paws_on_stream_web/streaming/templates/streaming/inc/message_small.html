@@ -24,11 +24,13 @@
       <p class="mb-0 text-truncate" style="font-size: 0.9rem; color: var(--bs-body-color);">
         {% if message.media_type == 'text' or message.media_type == 'photo' %}
           {% if message.media_type == 'photo' %}
-            <img src="{{ message.media_url }}" class="img-thumbnail" height="100px" width="100px"/>
+            <img src="{{ message.media_asset.file.url }}" class="img-thumbnail" height="100px" width="100px"/>
           {% endif %}
           {{ message.content|escape }}
-        {% elif message.media_type == 'sticker' or message.media_type == 'gif' %}
-          <img src="{{ message.media_url }}" class="img-thumbnail" height="100px" width="100px"/>
+        {% elif message.media_type == 'sticker' %}
+          <img src="{{ message.media_asset.file.url }}" class="img-thumbnail" height="100px" width="100px"/>
+        {% elif message.media_type == 'gif' %}
+          <img src="{{ message.media_asset.file.url }}" class="img-thumbnail" height="100px" width="100px"/>
         {% else %}
           Unknown Mediatype!
         {% endif %}

@@ -1,6 +1,40 @@
 from django.contrib import admin
 
-from .models import Event, Message
+from .models import DisplayEvent, Event, MediaAsset, Message
+
+
+@admin.register(MediaAsset)
+class MediaAssetAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "media_type",
+        "animated",
+        "width",
+        "height",
+        "frame_count",
+        "created_at",
+    )
+    list_filter = ("media_type", "animated", "has_alpha")
+    search_fields = ("telegram_file_id", "telegram_file_unique_id", "sha256")
+    readonly_fields = (
+        "format",
+        "animated",
+        "width",
+        "height",
+        "duration_ms",
+        "frame_count",
+        "has_alpha",
+        "sha256",
+        "created_at",
+        "updated_at",
+    )
+
+
+@admin.register(DisplayEvent)
+class DisplayEventAdmin(admin.ModelAdmin):
+    list_display = ("device", "event_type", "occurred_at", "created_at")
+    list_filter = ("event_type", "device")
+    readonly_fields = ("created_at",)
 
 
 @admin.register(Event)
@@ -34,6 +68,7 @@ class MessageAdmin(admin.ModelAdmin):
         "raw_content",
         "media_type",
         "media_url",
+        "media_asset",
         "sticker_emoji",
         "spam_score",
         "created_at",
@@ -48,6 +83,7 @@ class MessageAdmin(admin.ModelAdmin):
                     "raw_content",
                     "media_type",
                     "media_url",
+                    "media_asset",
                     "sticker_emoji",
                 )
             },

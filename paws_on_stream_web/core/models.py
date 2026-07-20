@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
@@ -10,6 +11,10 @@ class Settings(models.Model):
         ("offline", "Offline"),
         ("maintenance", "Maintenance"),
     ]
+    DISPLAY_MODES = [
+        ("chat", "Chat"),
+        ("crawling", "Crawling"),
+    ]
 
     rate_limit_per_minute = models.IntegerField(default=10)
     max_message_length = models.IntegerField(default=4096)
@@ -17,12 +22,21 @@ class Settings(models.Model):
     overlay_theme = models.CharField(max_length=32, default="default")
     overlay_font_size = models.IntegerField(default=24)
     auto_approve = models.BooleanField(default=False)
+    spam_threshold = models.PositiveIntegerField(default=5)
     display_duration_sec = models.IntegerField(default=8)
     reg_api_url = models.URLField(blank=True)
     reg_api_key = models.CharField(max_length=128, blank=True)
+    event_api_url = models.URLField(blank=True)
+    event_api_jsonq_filter = models.TextField(
+        blank=True,
+        default="",
+        help_text="jq filter applied to the event API response.",
+    )
     status_check_interval = models.IntegerField(default=300)
     require_event_active = models.BooleanField(default=True)
-    display_mode = models.CharField(max_length=16, default="chat")
+    display_mode = models.CharField(
+        max_length=16, choices=DISPLAY_MODES, default="chat"
+    )
     scroll_speed_px = models.IntegerField(default=3)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -83,3 +97,41 @@ class DisplayLog(models.Model):
             f"{self.message.participant.display_name} on "
             f"{self.device.device_id} at {self.displayed_at}"
         )
+
+
+class SyncLock(models.Model):
+    """Database-backed lease preventing overlapping scheduled sync runs."""
+
+    name = models.CharField(max_length=64, unique=True)
+    locked_until = models.DateTimeField(null=True, blank=True)
+    owner = models.CharField(max_length=64, blank=True, default="")
+
+    def __str__(self):
+        return self.name
+
+
+class TelegramAccess(models.Model):
+    """Allow-list entry and local identity for a Telegram dashboard user."""
+
+    telegram_id = models.BigIntegerField(unique=True)
+    label = models.CharField(max_length=150, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="telegram_access",
+    )
+    last_login_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("label", "telegram_id")
+        verbose_name = "Telegram access"
+        verbose_name_plural = "Telegram access"
+
+    def __str__(self):
+        return self.label or str(self.telegram_id)

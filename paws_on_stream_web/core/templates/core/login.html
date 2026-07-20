@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de" data-bs-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anmelden – Paws on Stream</title>
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+</head>
+<body class="bg-body-tertiary">
+  <main class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="card shadow-sm" style="width: min(100%, 28rem);">
+      <div class="card-body p-4 p-md-5">
+        <h1 class="h3 mb-2">Paws on Stream</h1>
+        <p class="text-body-secondary mb-4">Bitte anmelden, um das Dashboard zu öffnen.</p>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.username.id_for_label }}">Benutzername</label>
+            <input class="form-control" type="text" name="username" autofocus autocomplete="username"
+                   required id="{{ form.username.id_for_label }}" value="{{ form.username.value|default:'' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.password.id_for_label }}">Passwort</label>
+            <input class="form-control" type="password" name="password" autocomplete="current-password"
+                   required id="{{ form.password.id_for_label }}">
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Mit Django anmelden</button>
+        </form>
+
+        <div class="d-flex align-items-center gap-3 my-4" aria-hidden="true">
+          <hr class="flex-grow-1 m-0"><span class="text-body-secondary small">oder</span><hr class="flex-grow-1 m-0">
+        </div>
+
+        {% if telegram_enabled %}
+          <a class="btn btn-outline-primary w-100" href="{% url 'telegram_start' %}?next={{ next|urlencode }}">
+            <i class="bi bi-telegram me-2" aria-hidden="true"></i>Mit Telegram anmelden
+          </a>
+        {% else %}
+          <button class="btn btn-outline-secondary w-100" type="button" disabled>
+            Telegram-Login nicht konfiguriert
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</body>
+</html>
