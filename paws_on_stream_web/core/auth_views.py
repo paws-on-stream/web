@@ -87,14 +87,34 @@ def telegram_callback(request):
     except (KeyError, OAuthError, TypeError, ValueError):
         return HttpResponseBadRequest("Invalid Telegram identity response.")
 
+    label = claims.get("name", "")[:150]
     access = TelegramAccess.objects.filter(telegram_id=telegram_id).first()
-    if access is None and telegram_id in settings.TELEGRAM_AUTH_BOOTSTRAP_IDS:
+    if telegram_id in settings.TELEGRAM_AUTH_BOOTSTRAP_IDS:
+        if access is None:
+            access = TelegramAccess.objects.create(
+                telegram_id=telegram_id,
+                label=label,
+                is_active=True,
+                is_admin=True,
+            )
+        elif not access.is_active or not access.is_admin:
+            access.is_active = True
+            access.is_admin = True
+            if not access.label:
+                access.label = label
+            access.save(update_fields=("is_active", "is_admin", "label", "updated_at"))
+    elif access is None:
         access = TelegramAccess.objects.create(
             telegram_id=telegram_id,
-            label=claims.get("name", "")[:150],
-            is_admin=True,
+            label=label,
+            is_active=False,
+            is_admin=False,
         )
-    if access is None or not access.is_active:
+    elif not access.label and label:
+        access.label = label
+        access.save(update_fields=("label", "updated_at"))
+
+    if not access.is_active:
         query = urlencode({"telegram_id": telegram_id})
         return HttpResponseRedirect(f"{reverse('telegram_login_denied')}?{query}")
 
@@ -118,8 +138,10 @@ def telegram_callback(request):
 
 @require_GET
 def telegram_login_denied(request):
-    return HttpResponse(
-        "Dieser Telegram-Account ist nicht für das Dashboard freigeschaltet.",
+    return render(
+        request,
+        "core/telegram_login_pending.html",
+        {"telegram_id": request.GET.get("telegram_id", "")},
         status=403,
     )
 

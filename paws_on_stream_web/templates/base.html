@@ -125,6 +125,14 @@
                   Settings
                 </a>
               </li>
+              {% if request.user.is_superuser %}
+              <li class="nav-item">
+                <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and 'telegram_access' in current_url_name %} active{% endif %}" {% if current_ns == 'core' and 'telegram_access' in current_url_name %}aria-current="page"{% endif %} href="{% url 'core:telegram_access_list' %}">
+                  <i class="bi bi-person-check" aria-hidden="true"></i>
+                  Zugänge
+                </a>
+              </li>
+              {% endif %}
               <li class="nav-item">
                 {% if request.user.is_authenticated %}
                 <form method="post" action="{% url 'telegram_logout' %}">

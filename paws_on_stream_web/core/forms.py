@@ -1,6 +1,34 @@
 from django import forms
 
-from core.models import Settings
+from core.models import Settings, TelegramAccess
+
+
+class TelegramAccessForm(forms.ModelForm):
+    ROLE_STAFF = "staff"
+    ROLE_ADMIN = "admin"
+    ROLE_CHOICES = ((ROLE_STAFF, "Staff"), (ROLE_ADMIN, "Admin"))
+
+    role = forms.ChoiceField(choices=ROLE_CHOICES)
+
+    class Meta:
+        model = TelegramAccess
+        fields = ["label", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["role"].initial = (
+            self.ROLE_ADMIN if self.instance.is_admin else self.ROLE_STAFF
+        )
+        self.fields["label"].widget.attrs["class"] = "form-control"
+        self.fields["role"].widget.attrs["class"] = "form-select"
+        self.fields["is_active"].widget.attrs["class"] = "form-check-input"
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.is_admin = self.cleaned_data["role"] == self.ROLE_ADMIN
+        if commit:
+            instance.save()
+        return instance
 
 
 class SettingsForm(forms.ModelForm):

@@ -12,9 +12,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.auth import StaffRequiredMixin, StrictStaffRequiredMixin
-from core.forms import SettingsForm
-from core.models import DisplayDevice, DisplayLog, Settings
+from core.auth import AdminRequiredMixin, StaffRequiredMixin, StrictStaffRequiredMixin
+from core.forms import SettingsForm, TelegramAccessForm
+from core.models import DisplayDevice, DisplayLog, Settings, TelegramAccess
 from core.serializers import (
     DisplayDeviceSerializer,
     DisplayLogSerializer,
@@ -158,6 +158,39 @@ class SettingsUpdateView(StrictStaffRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse("core:settings")
+
+
+class TelegramAccessListView(AdminRequiredMixin, TemplateView):
+    template_name = "core/telegram_access_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["access_entries"] = TelegramAccess.objects.select_related(
+            "user"
+        ).order_by("is_active", "label", "telegram_id")
+        return context
+
+
+class TelegramAccessUpdateView(AdminRequiredMixin, UpdateView):
+    model = TelegramAccess
+    form_class = TelegramAccessForm
+    template_name = "core/telegram_access_form.html"
+
+    def form_valid(self, form):
+        access = self.get_object()
+        is_self = access.user_id == self.request.user.pk
+        remains_admin = form.cleaned_data["role"] == TelegramAccessForm.ROLE_ADMIN
+        if is_self and (not form.cleaned_data["is_active"] or not remains_admin):
+            form.add_error(
+                None,
+                "Du kannst deinen eigenen aktiven Admin-Zugang hier nicht entziehen.",
+            )
+            return self.form_invalid(form)
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        messages.success(self.request, "Telegram-Zugang wurde aktualisiert.")
+        return reverse("core:telegram_access_list")
 
 
 class DisplayDeviceListView(StaffRequiredMixin, SingleTableView):

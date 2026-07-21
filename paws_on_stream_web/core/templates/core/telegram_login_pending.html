@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Freigabe ausstehend – Paws on Stream</title>
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+</head>
+<body class="bg-body-tertiary">
+  <main class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="card shadow-sm" style="width: min(100%, 30rem);">
+      <div class="card-body p-4 p-md-5 text-center">
+        <i class="bi bi-hourglass-split fs-1 text-warning" aria-hidden="true"></i>
+        <h1 class="h3 mt-3">Freigabe ausstehend</h1>
+        <p class="text-body-secondary">
+          Dein Telegram-Zugang wurde angelegt und muss von einem Administrator freigegeben werden.
+        </p>
+        {% if telegram_id %}<p class="small">Telegram-ID: <code>{{ telegram_id }}</code></p>{% endif %}
+        <a class="btn btn-outline-primary" href="{% url 'login' %}">Zurück zur Anmeldung</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

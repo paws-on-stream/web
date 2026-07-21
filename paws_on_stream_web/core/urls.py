@@ -8,6 +8,8 @@ from core.views import (
     DisplayLogListView,
     SettingsUpdateView,
     SettingsView,
+    TelegramAccessListView,
+    TelegramAccessUpdateView,
 )
 
 app_name = "core"
@@ -32,4 +34,14 @@ urlpatterns = [
         name="device_delete",
     ),
     path("logs/", DisplayLogListView.as_view(), name="log_list"),
+    path(
+        "telegram-access/",
+        TelegramAccessListView.as_view(),
+        name="telegram_access_list",
+    ),
+    path(
+        "telegram-access/<int:pk>/edit/",
+        TelegramAccessUpdateView.as_view(),
+        name="telegram_access_edit",
+    ),
 ]

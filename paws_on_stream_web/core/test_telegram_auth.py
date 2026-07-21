@@ -48,9 +48,7 @@ class TelegramAuthTests(TestCase):
 
     @patch("core.auth_views._telegram_client")
     def test_whitelisted_user_gets_local_staff_session(self, get_client):
-        access = TelegramAccess.objects.create(
-            telegram_id=123456789, label="Operator"
-        )
+        access = TelegramAccess.objects.create(telegram_id=123456789, label="Operator")
         get_client.return_value = self.client_with_claims()
         session = self.client.session
         session["telegram_login_next"] = "/core/settings/"
@@ -67,7 +65,7 @@ class TelegramAuthTests(TestCase):
         self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
 
     @patch("core.auth_views._telegram_client")
-    def test_non_whitelisted_user_is_denied(self, get_client):
+    def test_unknown_user_is_created_inactive_and_denied(self, get_client):
         get_client.return_value = self.client_with_claims(id=555, sub="555")
         response = self.client.get("/auth/callback/?code=valid")
         self.assertRedirects(
@@ -76,6 +74,23 @@ class TelegramAuthTests(TestCase):
             fetch_redirect_response=False,
         )
         self.assertFalse(get_user_model().objects.exists())
+        access = TelegramAccess.objects.get(telegram_id=555)
+        self.assertEqual(access.label, "Test Operator")
+        self.assertFalse(access.is_active)
+        self.assertFalse(access.is_admin)
+
+    @patch("core.auth_views._telegram_client")
+    def test_pending_login_does_not_create_duplicate_request(self, get_client):
+        TelegramAccess.objects.create(telegram_id=555, is_active=False)
+        get_client.return_value = self.client_with_claims(id=555, sub="555")
+
+        self.client.get("/auth/callback/?code=valid")
+
+        self.assertEqual(TelegramAccess.objects.filter(telegram_id=555).count(), 1)
+        self.assertEqual(
+            TelegramAccess.objects.get(telegram_id=555).label,
+            "Test Operator",
+        )
 
     @override_settings(TELEGRAM_AUTH_BOOTSTRAP_IDS={123456789})
     @patch("core.auth_views._telegram_client")
@@ -107,12 +122,8 @@ class TelegramAuthTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_disabled_access_revokes_existing_session(self):
-        user = get_user_model().objects.create_user(
-            "telegram:123456789", is_staff=True
-        )
-        TelegramAccess.objects.create(
-            telegram_id=123456789, user=user, is_active=False
-        )
+        user = get_user_model().objects.create_user("telegram:123456789", is_staff=True)
+        TelegramAccess.objects.create(telegram_id=123456789, user=user, is_active=False)
         self.client.force_login(user)
         self.client.get("/")
         self.assertNotIn("_auth_user_id", self.client.session)

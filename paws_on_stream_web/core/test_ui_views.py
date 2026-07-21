@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from core.factories import DisplayDeviceFactory, DisplayLogFactory, SettingsFactory
+from core.models import TelegramAccess
 
 
 class DisplayUIViewsTest(TestCase):
@@ -84,3 +85,74 @@ class DisplayUIViewsTest(TestCase):
         assert response.status_code == 200
         assert "Display Logs" in response.content.decode()
         assert log.device.device_id in response.content.decode()
+
+
+class TelegramAccessUIViewsTest(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_user(
+            "telegram:1", is_staff=True, is_superuser=True
+        )
+        self.admin_access = TelegramAccess.objects.create(
+            telegram_id=1,
+            label="Admin",
+            is_active=True,
+            is_admin=True,
+            user=self.admin,
+        )
+        self.pending = TelegramAccess.objects.create(
+            telegram_id=2,
+            label="Pending User",
+            is_active=False,
+        )
+
+    def test_admin_can_see_pending_requests(self):
+        self.client.force_login(self.admin)
+        response = self.client.get("/core/telegram-access/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pending User")
+        self.assertContains(response, "Wartet auf Freigabe")
+
+    def test_staff_cannot_manage_telegram_access(self):
+        staff = get_user_model().objects.create_user("staff", is_staff=True)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.get("/core/telegram-access/").status_code, 403)
+        self.assertEqual(
+            self.client.post(
+                f"/core/telegram-access/{self.pending.pk}/edit/",
+                {"label": "Changed", "role": "admin", "is_active": "on"},
+            ).status_code,
+            403,
+        )
+
+    def test_admin_can_activate_staff(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            f"/core/telegram-access/{self.pending.pk}/edit/",
+            {"label": "Operator", "role": "staff", "is_active": "on"},
+        )
+        self.assertRedirects(response, "/core/telegram-access/")
+        self.pending.refresh_from_db()
+        self.assertTrue(self.pending.is_active)
+        self.assertFalse(self.pending.is_admin)
+
+    def test_admin_can_assign_admin_role(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            f"/core/telegram-access/{self.pending.pk}/edit/",
+            {"label": "Second Admin", "role": "admin", "is_active": "on"},
+        )
+        self.pending.refresh_from_db()
+        self.assertTrue(self.pending.is_active)
+        self.assertTrue(self.pending.is_admin)
+
+    def test_admin_cannot_revoke_own_admin_access(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            f"/core/telegram-access/{self.admin_access.pk}/edit/",
+            {"label": "Admin", "role": "staff", "is_active": "on"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "nicht entziehen")
+        self.admin_access.refresh_from_db()
+        self.assertTrue(self.admin_access.is_admin)
+        self.assertTrue(self.admin_access.is_active)
