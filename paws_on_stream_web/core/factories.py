@@ -20,7 +20,7 @@ class SettingsFactory(factory.django.DjangoModelFactory):
     overlay_theme = "east13"
     overlay_font_size = 24
     auto_approve = False
-    spam_threshold = 5
+    spam_threshold = 0.7
     display_duration_sec = 8
     reg_api_url = ""
     reg_api_key = ""

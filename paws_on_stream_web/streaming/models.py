@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
@@ -150,6 +151,7 @@ class Message(models.Model):
         ("banned", "Banned"),
         ("rate_limit", "Rate limited"),
         ("offline", "Bot offline"),
+        ("spam", "Spam"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -170,7 +172,10 @@ class Message(models.Model):
         related_name="messages",
     )
     sticker_emoji = models.CharField(max_length=64, default="", blank=True)
-    spam_score = models.IntegerField(default=0)
+    spam_score = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+    )
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="pending")
     rejection_reason = models.CharField(
         max_length=32, choices=REJECTION_REASONS, default="", blank=True

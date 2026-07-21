@@ -35,6 +35,13 @@ class SettingsSerializerTest(TestCase):
         assert instance.rate_limit_per_minute == 20
         assert instance.bot_status == "maintenance"
 
+    def test_rejects_spam_threshold_outside_score_range(self):
+        serializer = SettingsSerializer(
+            self.settings, data={"spam_threshold": 1.1}, partial=True
+        )
+        assert not serializer.is_valid()
+        assert "spam_threshold" in serializer.errors
+
 
 class DisplayDeviceSerializerTest(TestCase):
     def setUp(self):

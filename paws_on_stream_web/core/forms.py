@@ -63,6 +63,9 @@ class SettingsForm(ReadableFormMixin, forms.ModelForm):
             "require_event_active",
         ]
         widgets = {
+            "spam_threshold": forms.NumberInput(
+                attrs={"min": "0.1", "max": "1", "step": "0.05"}
+            ),
             "reg_api_key": forms.PasswordInput(
                 render_value=True, attrs={"autocomplete": "off"}
             ),
@@ -92,7 +95,7 @@ class SettingsForm(ReadableFormMixin, forms.ModelForm):
             "rate_limit_per_minute": "Maximale Nachrichten pro Teilnehmer und Minute.",
             "max_message_length": "Maximale Länge nach der serverseitigen Bereinigung.",
             "spam_threshold": (
-                "Nur Nachrichten mit einem Spam-Score bis zu diesem Wert werden "
+                "Nur Nachrichten mit einem Spam-Score unter diesem Wert werden "
                 "automatisch freigegeben."
             ),
             "overlay_theme": (

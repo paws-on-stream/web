@@ -4,6 +4,7 @@ import uuid
 from hmac import compare_digest
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -36,7 +37,10 @@ class Settings(models.Model):
     )
     overlay_font_size = models.IntegerField(default=24)
     auto_approve = models.BooleanField(default=False)
-    spam_threshold = models.PositiveIntegerField(default=5)
+    spam_threshold = models.FloatField(
+        default=0.7,
+        validators=[MinValueValidator(0.1), MaxValueValidator(1.0)],
+    )
     display_duration_sec = models.IntegerField(default=8)
     reg_api_url = models.URLField(blank=True)
     reg_api_key = models.CharField(max_length=128, blank=True)

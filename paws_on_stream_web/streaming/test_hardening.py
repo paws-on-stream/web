@@ -59,6 +59,37 @@ class MessageBusinessRulesTest(TestCase):
         assert response.json()["status"] == "pending"
         assert response.json()["spam_score"] == 0
 
+    def test_auto_approve_keeps_flagged_message_pending_and_updates_history(self):
+        self.settings.auto_approve = True
+        self.settings.spam_threshold = 0.7
+        self.settings.save(update_fields=["auto_approve", "spam_threshold"])
+        EventFactory(
+            is_active=True,
+            starts_at=timezone.now() - timedelta(hours=1),
+            ends_at=timezone.now() + timedelta(hours=1),
+        )
+        response = self.post_message(
+            content="aaaaaa " + "🐾" * 11 + " https://one.example https://two.example"
+        )
+        self.participant.refresh_from_db()
+        assert response.status_code == 201
+        assert response.json()["status"] == "pending"
+        assert response.json()["spam_score"] == 0.7
+        assert self.participant.spam_count == 1
+
+    def test_auto_approve_approves_score_below_threshold(self):
+        self.settings.auto_approve = True
+        self.settings.spam_threshold = 0.7
+        self.settings.save(update_fields=["auto_approve", "spam_threshold"])
+        EventFactory(
+            is_active=True,
+            starts_at=timezone.now() - timedelta(hours=1),
+            ends_at=timezone.now() + timedelta(hours=1),
+        )
+        response = self.post_message(content="Hallo zusammen")
+        assert response.status_code == 201
+        assert response.json()["status"] == "approved"
+
     def test_invalid_display_cursor_is_rejected(self):
         response = self.client.get("/api/v1/messages/display/?since=invalid")
         assert response.status_code == 400

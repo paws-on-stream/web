@@ -7,7 +7,7 @@ from core.models import DisplayDevice, DisplayLog, Settings
 from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -202,15 +202,28 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         data["content"] = content
         data["raw_content"] = raw_content
-        spam_score = calculate_spam_score(content)
-
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        message = serializer.save(spam_score=spam_score)
-        if settings.auto_approve and spam_score <= settings.spam_threshold:
-            message.status = "approved"
-            message.approved_at = timezone.now()
-            message.save(update_fields=["status", "approved_at"])
+        with transaction.atomic():
+            participant = Participant.objects.select_for_update().get(pk=participant.pk)
+            candidate = Message(
+                participant=participant,
+                content=content,
+                raw_content=raw_content,
+                media_type=media_type,
+            )
+            spam_score = calculate_spam_score(
+                candidate, participant, settings.spam_threshold
+            )
+            message = serializer.save(spam_score=spam_score)
+            if spam_score >= settings.spam_threshold:
+                Participant.objects.filter(pk=participant.pk).update(
+                    spam_count=F("spam_count") + 1
+                )
+            elif settings.auto_approve:
+                message.status = "approved"
+                message.approved_at = timezone.now()
+                message.save(update_fields=["status", "approved_at"])
         return Response(
             self.get_serializer(message).data,
             status=status.HTTP_201_CREATED,
@@ -453,7 +466,7 @@ class MessageListView(StaffRequiredMixin, SingleTableView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
         selected = request.POST.getlist("select")  # from checkbox column
-        allowed_actions = {"approve", "reject", "delete"}
+        allowed_actions = {"approve", "reject", "reject_spam", "delete"}
         if action not in allowed_actions:
             messages.error(request, "Bitte eine gültige Aktion auswählen.")
             return redirect("streaming:message_list")
@@ -466,14 +479,18 @@ class MessageListView(StaffRequiredMixin, SingleTableView):
         if action == "approve":
             selected_messages.update(status="approved", approved_at=timezone.now())
             messages.success(request, "Ausgewählte Nachrichten wurden freigegeben.")
-        elif action == "reject":
-            selected_messages.update(status="rejected")
+        elif action in {"reject", "reject_spam"}:
+            reason = "spam" if action == "reject_spam" else "unknown"
+            selected_messages.update(status="rejected", rejection_reason=reason)
             messages.success(request, "Ausgewählte Nachrichten wurden abgelehnt.")
         else:
             selected_messages.delete()
             messages.success(request, "Ausgewählte Nachrichten wurden gelöscht.")
 
         return redirect("streaming:message_list")
+
+    def get_table_kwargs(self):
+        return {"spam_threshold": Settings.get_settings().spam_threshold}
 
 
 class MessageDetailView(StaffRequiredMixin, DetailView):
@@ -496,11 +513,12 @@ class MessageDetailView(StaffRequiredMixin, DetailView):
                 self.object.save(update_fields=["status", "approved_at"])
             return redirect(self.object.get_absolute_url())
 
-        if action == "reject":
+        if action in {"reject", "reject_spam"}:
             if self.object.status == "pending":
                 self.object.status = "rejected"
-                if not self.object.rejection_reason:
-                    self.object.rejection_reason = "unknown"
+                self.object.rejection_reason = (
+                    "spam" if action == "reject_spam" else "unknown"
+                )
                 self.object.save(update_fields=["status", "rejection_reason"])
             return redirect(self.object.get_absolute_url())
 
@@ -517,6 +535,7 @@ class MessageDetailView(StaffRequiredMixin, DetailView):
         ctx["badges"] = badges
         ctx["detail_edit_url"] = None  # Messages are read-only
         ctx["detail_delete_url"] = None  # Messages are read-only
+        ctx["spam_threshold"] = Settings.get_settings().spam_threshold
         return ctx
 
 

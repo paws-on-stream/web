@@ -53,7 +53,7 @@ class DisplayUIViewsTest(TestCase):
             {
                 "rate_limit_per_minute": 10,
                 "max_message_length": 4096,
-                "spam_threshold": 5,
+                "spam_threshold": 0.7,
                 "bot_status": "online",
                 "overlay_theme": "east13",
                 "overlay_font_size": 24,

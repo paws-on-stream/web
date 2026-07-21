@@ -167,6 +167,15 @@ class MessageRejectActionTest(APITestCase):
         assert response.json()["status"] == "rejected"
         assert response.json()["rejection_reason"] == "no_event"
 
+    def test_reject_message_as_spam(self):
+        response = self.client.post(
+            f"/api/v1/messages/{self.message.id}/reject/",
+            {"rejection_reason": "spam"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["rejection_reason"] == "spam"
+
 
 @override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageViewSetAuthTest(APITestCase):

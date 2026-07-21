@@ -1,30 +1,31 @@
-import re
+from dataclasses import dataclass
 
-REPEATED_CHAR = re.compile(r"(.)\1{7,}", re.IGNORECASE)
-URL = re.compile(r"https?://|www\.", re.IGNORECASE)
-
-
-class RepeatedCharacterFilter:
-    def score(self, content: str) -> int:
-        return min(len(REPEATED_CHAR.findall(content)) * 3, 9)
+from streaming.spam_filters.base import SpamFilter
 
 
-class UrlFilter:
-    def score(self, content: str) -> int:
-        return min(len(URL.findall(content)) * 3, 9)
+@dataclass(frozen=True)
+class SpamEvaluation:
+    score: float
+    evaluated_filters: tuple[str, ...]
 
 
-class UppercaseFilter:
-    def score(self, content: str) -> int:
-        letters = [char for char in content if char.isalpha()]
-        if len(letters) < 12:
-            return 0
-        ratio = sum(char.isupper() for char in letters) / len(letters)
-        return 3 if ratio > 0.8 else 0
+def evaluate_spam(
+    message,
+    participant,
+    threshold: float,
+    filters: tuple[SpamFilter, ...],
+) -> SpamEvaluation:
+    total = 0.0
+    evaluated = []
+    for filter_ in filters:
+        evaluated.append(type(filter_).__name__)
+        total = min(round(total + filter_.score(message, participant), 2), 1.0)
+        if total >= threshold:
+            break
+    return SpamEvaluation(score=total, evaluated_filters=tuple(evaluated))
 
 
-DEFAULT_FILTERS = (RepeatedCharacterFilter(), UrlFilter(), UppercaseFilter())
+def calculate_spam_score(message, participant, threshold: float) -> float:
+    from streaming.spam_filters import DEFAULT_FILTERS
 
-
-def calculate_spam_score(content: str) -> int:
-    return sum(filter_.score(content) for filter_ in DEFAULT_FILTERS)
+    return evaluate_spam(message, participant, threshold, DEFAULT_FILTERS).score
