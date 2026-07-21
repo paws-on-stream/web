@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from core.models import DisplayDevice, DisplayLog, Settings
+from core.themes import available_theme_choices
 
 
 class SettingsSerializer(serializers.ModelSerializer):
@@ -14,7 +15,6 @@ class SettingsSerializer(serializers.ModelSerializer):
             "max_message_length",
             "bot_status",
             "overlay_theme",
-            "web_display_theme",
             "overlay_font_size",
             "auto_approve",
             "spam_threshold",
@@ -36,6 +36,11 @@ class SettingsSerializer(serializers.ModelSerializer):
             "event_api_url": {"write_only": True},
             "event_api_jsonq_filter": {"write_only": True},
         }
+
+    def validate_overlay_theme(self, value):
+        if value not in dict(available_theme_choices()):
+            raise serializers.ValidationError("Unknown display theme.")
+        return value
 
 
 class DisplayDeviceSerializer(serializers.ModelSerializer):

@@ -24,9 +24,11 @@ from core.auth_views import (
 )
 from core.monitor_views import (
     display_theme_api,
+    display_theme_asset_api,
     web_display,
     web_display_access,
     web_display_feed,
+    web_display_theme_asset,
 )
 from core.views import (
     DisplayDeviceViewSet,
@@ -72,10 +74,20 @@ urlpatterns = [
     path("api/v1/health/", HealthAPIView.as_view()),
     path("api/v1/readiness/", ReadinessAPIView.as_view()),
     path("api/v1/themes/<slug:name>/", display_theme_api, name="display_theme_api"),
+    path(
+        "api/v1/themes/<slug:name>/<str:version>/assets/<slug:asset_id>/",
+        display_theme_asset_api,
+        name="display_theme_asset_api",
+    ),
     path("metrics/", MetricsAPIView.as_view()),
     path("monitor/", web_display, name="web_display"),
     path("monitor/access/", web_display_access, name="web_display_access"),
     path("monitor/feed/", web_display_feed, name="web_display_feed"),
+    path(
+        "monitor/themes/<slug:name>/<str:version>/assets/<slug:asset_id>/",
+        web_display_theme_asset,
+        name="web_display_theme_asset",
+    ),
     path("media/media_assets/<path:file_name>", media_asset_content),
     path("api/v1/media/upload/", MediaUploadAPIView.as_view()),
     path("api/v1/events/killswitch/", DisplayEventAPIView.as_view()),

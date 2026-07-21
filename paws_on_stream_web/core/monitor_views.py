@@ -6,7 +6,7 @@ from django.conf import settings as django_settings
 from django.core import signing
 from django.core.cache import cache
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_POST
 from streaming.models import Message
 
 from core.models import Settings, WebDisplayAccess
-from core.themes import get_display_theme
+from core.themes import get_display_theme, get_theme_asset, with_asset_urls
 
 COOKIE_NAME = "web_display_access"
 COOKIE_MAX_AGE = int(timedelta(days=30).total_seconds())
@@ -109,6 +109,42 @@ def _message_payload(request, message):
     }
 
 
+def _theme_with_urls(request, theme, *, route_name):
+    return with_asset_urls(
+        theme,
+        lambda theme_name, version, asset_id: request.build_absolute_uri(
+            reverse(
+                route_name,
+                kwargs={
+                    "name": theme_name,
+                    "version": version,
+                    "asset_id": asset_id,
+                },
+            )
+        ),
+    )
+
+
+def _theme_asset_response(name, version, asset_id, *, private=False):
+    try:
+        theme = get_display_theme(name, fallback=False)
+        if theme.get("schema_version") != 3 or theme["theme"]["version"] != version:
+            raise FileNotFoundError(version)
+        asset = get_theme_asset(name, asset_id)
+    except (FileNotFoundError, ValueError):
+        return JsonResponse({"detail": "Unknown theme asset."}, status=404)
+    source = asset.file.open("rb")
+    response = FileResponse(source, content_type=asset.content_type)
+    response["Content-Length"] = asset.size
+    response["ETag"] = f'"{asset.sha256}"'
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Content-Disposition"] = f'inline; filename="{asset.file_name}"'
+    response["Cache-Control"] = (
+        "private, max-age=300" if private else "public, max-age=31536000, immutable"
+    )
+    return response
+
+
 @require_GET
 def web_display(request):
     response = render(
@@ -188,7 +224,11 @@ def web_display_feed(request):
         next_cursor = _encode_cursor(now)
 
     app_settings = Settings.get_settings()
-    theme = get_display_theme(app_settings.web_display_theme)
+    theme = _theme_with_urls(
+        request,
+        get_display_theme(app_settings.overlay_theme),
+        route_name="web_display_theme_asset",
+    )
     response = JsonResponse(
         {
             "messages": [_message_payload(request, item) for item in messages],
@@ -197,7 +237,7 @@ def web_display_feed(request):
                 "display_duration_sec": app_settings.display_duration_sec,
                 "scroll_speed_px": app_settings.scroll_speed_px,
                 "overlay_font_size": app_settings.overlay_font_size,
-                "overlay_theme": app_settings.web_display_theme,
+                "overlay_theme": app_settings.overlay_theme,
             },
             "theme": theme,
             "cursor": next_cursor,
@@ -213,6 +253,23 @@ def display_theme_api(request, name):  # noqa: ARG001
         theme = get_display_theme(name, fallback=False)
     except (FileNotFoundError, ValueError):
         return JsonResponse({"detail": "Unknown display theme."}, status=404)
+    theme = _theme_with_urls(
+        request,
+        theme,
+        route_name="display_theme_asset_api",
+    )
     response = JsonResponse(theme)
     response["Cache-Control"] = "public, max-age=300"
     return response
+
+
+@require_GET
+def display_theme_asset_api(request, name, version, asset_id):  # noqa: ARG001
+    return _theme_asset_response(name, version, asset_id)
+
+
+@require_GET
+def web_display_theme_asset(request, name, version, asset_id):
+    if not _monitor_authorized(request):
+        return _secure_response(JsonResponse({"detail": "Unauthorized."}, status=401))
+    return _theme_asset_response(name, version, asset_id, private=True)

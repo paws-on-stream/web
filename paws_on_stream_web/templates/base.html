@@ -146,6 +146,12 @@
                   Web-Display-Link
                 </a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and current_url_name == 'theme_management' %} active{% endif %}" href="{% url 'core:theme_management' %}">
+                  <i class="bi bi-palette" aria-hidden="true"></i>
+                  Themes
+                </a>
+              </li>
               {% endif %}
               <li class="nav-item">
                 {% if request.user.is_authenticated %}

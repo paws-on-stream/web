@@ -5,6 +5,8 @@ from hmac import compare_digest
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.urls import reverse
 
 
@@ -20,16 +22,17 @@ class Settings(models.Model):
         ("chat", "Chat"),
         ("crawling", "Crawling"),
     ]
-    WEB_DISPLAY_THEMES = [("east-readable", "EAST Readable")]
+    DISPLAY_THEMES = [
+        ("east13", "EAST 13"),
+        ("east-readable", "EAST Readable (Legacy)"),
+    ]
 
     rate_limit_per_minute = models.IntegerField(default=10)
     max_message_length = models.IntegerField(default=4096)
     bot_status = models.CharField(max_length=16, choices=BOT_STATUSES, default="online")
-    overlay_theme = models.CharField(max_length=32, default="default")
-    web_display_theme = models.CharField(
+    overlay_theme = models.CharField(
         max_length=32,
-        choices=WEB_DISPLAY_THEMES,
-        default="east-readable",
+        default="east13",
     )
     overlay_font_size = models.IntegerField(default=24)
     auto_approve = models.BooleanField(default=False)
@@ -183,3 +186,69 @@ class WebDisplayAccess(models.Model):
             return False
         digest = hashlib.sha256(str(token).encode()).hexdigest()
         return compare_digest(self.token_digest, digest)
+
+
+class DisplayThemeVersion(models.Model):
+    slug = models.SlugField(max_length=32)
+    name = models.CharField(max_length=128)
+    version = models.CharField(max_length=32)
+    manifest = models.JSONField()
+    is_current = models.BooleanField(default=False)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="uploaded_display_themes",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("slug", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("slug", "version"), name="unique_display_theme_version"
+            ),
+            models.UniqueConstraint(
+                fields=("slug",),
+                condition=models.Q(is_current=True),
+                name="unique_current_display_theme_version",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} {self.version}"
+
+
+def display_theme_asset_upload_to(instance, filename):
+    version = instance.theme_version
+    return f"display_themes/{version.slug}/{version.version}/{filename}"
+
+
+class DisplayThemeAsset(models.Model):
+    theme_version = models.ForeignKey(
+        DisplayThemeVersion, on_delete=models.CASCADE, related_name="assets"
+    )
+    asset_id = models.CharField(max_length=64)
+    file = models.FileField(upload_to=display_theme_asset_upload_to)
+    content_type = models.CharField(max_length=64, default="image/png")
+    sha256 = models.CharField(max_length=64)
+    size = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ("asset_id",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("theme_version", "asset_id"),
+                name="unique_display_theme_asset",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.theme_version}: {self.asset_id}"
+
+
+@receiver(post_delete, sender=DisplayThemeAsset)
+def delete_display_theme_asset_file(sender, instance, **kwargs):  # noqa: ARG001
+    if instance.file.name:
+        instance.file.storage.delete(instance.file.name)

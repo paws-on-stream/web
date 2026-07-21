@@ -50,6 +50,23 @@
   --web-display-max-width: 980px;
   --web-display-media-width: 760px;
   --web-display-media-height: 460px;
+  --web-display-name-size: 30px;
+  --web-display-message-size: 28px;
+  --web-display-chat-scale: 1;
+  --web-display-chat-x: 40px;
+  --web-display-chat-y: 40px;
+  --web-display-frame-padding-x: 36px;
+  --web-display-frame-padding-y: 28px;
+  --web-display-frame-top-height: 0px;
+  --web-display-frame-middle-height: 1px;
+  --web-display-frame-bottom-height: 0px;
+  --web-display-frame-top: none;
+  --web-display-frame-middle: none;
+  --web-display-frame-bottom: none;
+  --web-display-ticker-scale: 1;
+  --web-display-ticker-x: 32px;
+  --web-display-ticker-y: 104px;
+  --web-display-ticker-width: calc(100vw - 64px);
   position: relative;
   width: 100vw;
   height: 100vh;
@@ -63,12 +80,13 @@
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
 }
 
 .web-display-message {
+  position: absolute;
+  top: var(--web-display-chat-y);
+  left: var(--web-display-chat-x);
   display: grid;
   gap: .65rem;
   width: min(82vw, var(--web-display-max-width));
@@ -80,15 +98,66 @@
   background: var(--web-display-bubble);
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%);
   animation: web-display-fade-in .3s ease-out;
+  transform: scale(var(--web-display-chat-scale));
+  transform-origin: top left;
+}
+
+.web-display-frame-content {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--web-display-max-width);
+}
+
+.web-display-message.has-segmented-frame {
+  display: block;
+  width: fit-content;
+  min-width: min(640px, calc(100vw - 2rem));
+  max-width: calc(var(--web-display-max-width) + (2 * var(--web-display-frame-padding-x)));
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.web-display-frame-top,
+.web-display-frame-bottom {
+  width: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.web-display-frame-top {
+  height: var(--web-display-frame-top-height);
+  background-image: var(--web-display-frame-top);
+}
+
+.web-display-frame-middle {
+  min-height: var(--web-display-frame-middle-height);
+  padding: var(--web-display-frame-padding-y) var(--web-display-frame-padding-x);
+  background-color: var(--web-display-bubble);
+  background-image: var(--web-display-frame-middle);
+  background-position: top center;
+  background-repeat: repeat-y;
+  background-size: 100% var(--web-display-frame-middle-height);
+}
+
+.web-display-frame-bottom {
+  height: var(--web-display-frame-bottom-height);
+  background-image: var(--web-display-frame-bottom);
 }
 
 .web-display-name {
   color: var(--web-display-name);
-  font-size: 1.12em;
+  font-size: var(--web-display-name-size);
   font-weight: 700;
 }
 
 .web-display-content {
+  font-size: var(--web-display-message-size);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -117,24 +186,37 @@
 }
 
 .web-display[data-mode="crawling"] .web-display-stage {
-  justify-content: flex-start;
+  display: block;
 }
 
 .web-display-ticker {
   position: absolute;
-  left: 100vw;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: max-content;
+  bottom: var(--web-display-ticker-y);
+  left: var(--web-display-ticker-x);
+  width: var(--web-display-ticker-width);
+  height: calc(var(--web-display-message-size) + 1.4em);
   max-width: none;
-  padding: .7em 1.35em;
   border-radius: .8em;
   border: 2px solid var(--web-display-ticker-border);
   background: var(--web-display-ticker);
   color: var(--web-display-ticker-text);
   box-shadow: 0 .75rem 2rem rgb(0 0 0 / 35%);
   white-space: nowrap;
+  overflow: hidden;
+  transform: scale(var(--web-display-ticker-scale));
+  transform-origin: bottom left;
+}
+
+.web-display-ticker-track {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: max-content;
+  height: 100%;
+  padding-inline: 1.35em;
 }
 
 .web-display-ticker .web-display-name::after {
@@ -151,7 +233,7 @@
   height: 2.5em;
 }
 
-.web-display-ticker.is-running {
+.web-display-ticker.is-running .web-display-ticker-track {
   animation: web-display-crawl var(--ticker-duration) linear forwards;
 }
 
@@ -170,7 +252,7 @@
 }
 
 @keyframes web-display-crawl {
-  to { transform: translateX(calc(-100vw - 100%)); }
+  to { transform: translateX(var(--ticker-distance)); }
 }
 
 @keyframes web-display-fade-in {

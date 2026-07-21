@@ -6,6 +6,7 @@ from core.views import (
     DisplayDeviceListView,
     DisplayDeviceUpdateView,
     DisplayLogListView,
+    DisplayThemeManagementView,
     SettingsUpdateView,
     SettingsView,
     TelegramAccessListView,
@@ -46,4 +47,5 @@ urlpatterns = [
         name="telegram_access_edit",
     ),
     path("web-display/", WebDisplayAccessView.as_view(), name="web_display_access"),
+    path("themes/", DisplayThemeManagementView.as_view(), name="theme_management"),
 ]

@@ -1,6 +1,7 @@
 from django import forms
 
 from core.models import Settings, TelegramAccess
+from core.themes import available_theme_choices
 
 
 class TelegramAccessForm(forms.ModelForm):
@@ -32,6 +33,8 @@ class TelegramAccessForm(forms.ModelForm):
 
 
 class SettingsForm(forms.ModelForm):
+    overlay_theme = forms.ChoiceField()
+
     class Meta:
         model = Settings
         fields = [
@@ -39,7 +42,6 @@ class SettingsForm(forms.ModelForm):
             "max_message_length",
             "bot_status",
             "overlay_theme",
-            "web_display_theme",
             "overlay_font_size",
             "auto_approve",
             "spam_threshold",
@@ -66,8 +68,10 @@ class SettingsForm(forms.ModelForm):
                 "Nur Nachrichten mit einem Spam-Score bis zu diesem Wert werden "
                 "automatisch freigegeben."
             ),
-            "overlay_theme": "Name des Themes, das der Display-Client laden soll.",
-            "web_display_theme": "Zentrales Theme für die Browser-Vorschau.",
+            "overlay_theme": (
+                "Zentrales Theme für Pygame und Browser-Vorschau; EAST 13 verwendet "
+                "die Referenzgrafiken und das Pygame-Template."
+            ),
             "display_duration_sec": "Mindestanzeigedauer einer Nachricht.",
             "scroll_speed_px": "Pixel pro Frame im Crawling-Modus.",
             "reg_api_url": (
@@ -87,12 +91,17 @@ class SettingsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["overlay_theme"].choices = available_theme_choices()
         for field in self.fields.values():
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs["class"] = "form-check-input"
             else:
                 field.widget.attrs["class"] = "form-control"
-        for name in ("bot_status", "display_mode", "web_display_theme"):
+        for name in (
+            "bot_status",
+            "display_mode",
+            "overlay_theme",
+        ):
             self.fields[name].widget.attrs["class"] = "form-select"
 
     def clean_event_api_jsonq_filter(self):
@@ -102,3 +111,13 @@ class SettingsForm(forms.ModelForm):
                 "Der Filter enthält ein ungültiges Nullzeichen."
             )
         return value
+
+
+class ThemeUploadForm(forms.Form):
+    package = forms.FileField(
+        label="Theme-Paket",
+        help_text="ZIP mit theme.json (Schema v3) und allen deklarierten PNG-Assets.",
+        widget=forms.ClearableFileInput(
+            attrs={"class": "form-control", "accept": ".zip,application/zip"}
+        ),
+    )

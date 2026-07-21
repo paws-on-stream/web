@@ -17,8 +17,7 @@ class SettingsFactory(factory.django.DjangoModelFactory):
     rate_limit_per_minute = 10
     max_message_length = 4096
     bot_status = "online"
-    overlay_theme = "default"
-    web_display_theme = "east-readable"
+    overlay_theme = "east13"
     overlay_font_size = 24
     auto_approve = False
     spam_threshold = 5

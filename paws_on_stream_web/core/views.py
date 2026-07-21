@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from django.contrib import messages
-from django.db import connection
+from django.db import connection, transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -13,10 +13,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.auth import AdminRequiredMixin, StaffRequiredMixin, StrictStaffRequiredMixin
-from core.forms import SettingsForm, TelegramAccessForm
+from core.forms import SettingsForm, TelegramAccessForm, ThemeUploadForm
 from core.models import (
     DisplayDevice,
     DisplayLog,
+    DisplayThemeVersion,
     Settings,
     TelegramAccess,
     WebDisplayAccess,
@@ -27,6 +28,8 @@ from core.serializers import (
     SettingsSerializer,
 )
 from core.tables import DisplayDeviceTable, DisplayLogTable
+from core.theme_import import ThemeImportError, import_theme_package
+from core.themes import builtin_themes, clear_theme_cache
 
 
 class SettingsViewSet(viewsets.GenericViewSet):
@@ -226,6 +229,118 @@ class WebDisplayAccessView(AdminRequiredMixin, TemplateView):
             return HttpResponseBadRequest("Unsupported web display action.")
         context["web_display_access"] = access
         return self.render_to_response(context)
+
+
+class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
+    template_name = "core/theme_management.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        app_settings = Settings.get_settings()
+        uploaded_versions = list(
+            DisplayThemeVersion.objects.select_related("uploaded_by").prefetch_related(
+                "assets"
+            )
+        )
+        current_uploaded_slugs = {
+            version.slug for version in uploaded_versions if version.is_current
+        }
+        builtins = builtin_themes()
+        for theme in builtins:
+            theme["is_active"] = (
+                app_settings.overlay_theme == theme["slug"]
+                and theme["slug"] not in current_uploaded_slugs
+            )
+        for version in uploaded_versions:
+            version.is_active = (
+                version.is_current and app_settings.overlay_theme == version.slug
+            )
+        context["settings"] = app_settings
+        context["builtin_themes"] = builtins
+        context["uploaded_versions"] = uploaded_versions
+        context.setdefault("upload_form", ThemeUploadForm())
+        return context
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        if action == "upload":
+            return self._upload(request)
+        if action == "activate-builtin":
+            return self._activate_builtin(request)
+        if action == "activate-version":
+            return self._activate_version(request)
+        if action == "delete-version":
+            return self._delete_version(request)
+        return HttpResponseBadRequest("Unsupported theme action.")
+
+    def _upload(self, request):
+        form = ThemeUploadForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return self.render_to_response(self.get_context_data(upload_form=form))
+        try:
+            version = import_theme_package(
+                form.cleaned_data["package"], user=request.user
+            )
+        except ThemeImportError as exc:
+            form.add_error("package", str(exc))
+            return self.render_to_response(self.get_context_data(upload_form=form))
+        messages.success(request, f"Theme {version} wurde sicher importiert.")
+        return redirect("core:theme_management")
+
+    def _activate_builtin(self, request):
+        slug = request.POST.get("slug", "")
+        if slug not in {item["slug"] for item in builtin_themes()}:
+            return HttpResponseBadRequest("Unknown builtin theme.")
+        Settings.get_settings()
+        with transaction.atomic():
+            DisplayThemeVersion.objects.select_for_update().filter(slug=slug).update(
+                is_current=False
+            )
+            app_settings = Settings.objects.select_for_update().get(pk=1)
+            app_settings.overlay_theme = slug
+            app_settings.save(update_fields=("overlay_theme", "updated_at"))
+        clear_theme_cache()
+        messages.success(request, f"{slug} ist jetzt für Pi und Web aktiv.")
+        return redirect("core:theme_management")
+
+    def _activate_version(self, request):
+        try:
+            version = DisplayThemeVersion.objects.get(pk=request.POST.get("version_id"))
+        except (DisplayThemeVersion.DoesNotExist, ValueError, TypeError):
+            return HttpResponseBadRequest("Unknown theme version.")
+        Settings.get_settings()
+        with transaction.atomic():
+            DisplayThemeVersion.objects.select_for_update().filter(
+                slug=version.slug
+            ).update(is_current=False)
+            version.is_current = True
+            version.save(update_fields=("is_current",))
+            app_settings = Settings.objects.select_for_update().get(pk=1)
+            app_settings.overlay_theme = version.slug
+            app_settings.save(update_fields=("overlay_theme", "updated_at"))
+        clear_theme_cache()
+        messages.success(request, f"{version} ist jetzt für Pi und Web aktiv.")
+        return redirect("core:theme_management")
+
+    def _delete_version(self, request):
+        try:
+            version = DisplayThemeVersion.objects.prefetch_related("assets").get(
+                pk=request.POST.get("version_id")
+            )
+        except (DisplayThemeVersion.DoesNotExist, ValueError, TypeError):
+            return HttpResponseBadRequest("Unknown theme version.")
+        if version.is_current and Settings.get_settings().overlay_theme == version.slug:
+            messages.error(
+                request, "Eine aktive Theme-Version kann nicht gelöscht werden."
+            )
+            return redirect("core:theme_management")
+        label = str(version)
+        for asset in list(version.assets.all()):
+            asset.delete()
+        version.delete()
+        clear_theme_cache()
+        messages.success(request, f"{label} wurde gelöscht.")
+        return redirect("core:theme_management")
 
 
 class DisplayDeviceListView(StaffRequiredMixin, SingleTableView):

@@ -69,7 +69,7 @@ class PublicWebDisplayTest(TestCase):
             display_duration_sec=8,
             scroll_speed_px=3,
             overlay_font_size=24,
-            overlay_theme="default",
+            overlay_theme="east13",
         )
         self.access = WebDisplayAccess.get_access()
         self.token = self.access.rotate()
@@ -125,9 +125,32 @@ class PublicWebDisplayTest(TestCase):
         assert [item["id"] for item in payload["messages"]] == [str(latest.id)]
         assert str(older.id) not in {item["id"] for item in payload["messages"]}
         assert payload["settings"]["display_mode"] == "chat"
-        assert payload["settings"]["overlay_theme"] == "east-readable"
-        assert payload["theme"]["name"] == "east-readable"
-        assert payload["theme"]["chat"]["styles"]["message"]["color"] == "#111827"
+        assert payload["settings"]["overlay_theme"] == "east13"
+        assert payload["theme"]["schema_version"] == 3
+        assert payload["theme"]["theme"]["id"] == "east13"
+        assert payload["theme"]["chat"]["styles"]["message"]["color"] == "#000000"
+        assert (
+            payload["theme"]["chat"]["background"]["frame"]["type"]
+            == "segmented_vertical"
+        )
+        assert payload["theme"]["assets"]["chat_top"]["url"].startswith(
+            "http://testserver/monitor/themes/east13/3.0.0/assets/chat_top/"
+        )
+
+    def test_monitor_theme_asset_requires_access_and_returns_original_png(self):
+        url = "/monitor/themes/east13/3.0.0/assets/chat_top/"
+        assert self.client.get(url).status_code == 401
+        self._authorize()
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/png"
+        assert response["X-Content-Type-Options"] == "nosniff"
+        assert response["ETag"] == (
+            '"c9630d4c096a74c832fb1d663d83e75e6584db3e786e593e6b80f8cdb89149d8"'
+        )
+        assert b"".join(response.streaming_content).startswith(b"\x89PNG\r\n\x1a\n")
 
     def test_follow_up_feed_returns_new_approvals_without_side_effects(self):
         self._authorize()

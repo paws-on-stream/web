@@ -2,7 +2,14 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from .models import DisplayDevice, DisplayLog, Settings, TelegramAccess
+from .models import (
+    DisplayDevice,
+    DisplayLog,
+    DisplayThemeAsset,
+    DisplayThemeVersion,
+    Settings,
+    TelegramAccess,
+)
 
 
 @admin.register(Settings)
@@ -29,7 +36,6 @@ class SettingsAdmin(admin.ModelAdmin):
                 "fields": (
                     "display_mode",
                     "overlay_theme",
-                    "web_display_theme",
                     "overlay_font_size",
                     "display_duration_sec",
                     "scroll_speed_px",
@@ -81,6 +87,45 @@ class DisplayLogAdmin(admin.ModelAdmin):
         return f"{obj.message.participant.display_name}: {obj.message.content[:50]}"
 
     message_preview.short_description = "Message"
+
+
+class DisplayThemeAssetInline(admin.TabularInline):
+    model = DisplayThemeAsset
+    extra = 0
+    readonly_fields = ("asset_id", "file", "content_type", "sha256", "size")
+    can_delete = False
+
+
+@admin.register(DisplayThemeVersion)
+class DisplayThemeVersionAdmin(admin.ModelAdmin):
+    list_display = (
+        "slug",
+        "name",
+        "version",
+        "is_current",
+        "uploaded_by",
+        "created_at",
+    )
+    list_filter = ("is_current", "created_at")
+    readonly_fields = (
+        "slug",
+        "name",
+        "version",
+        "manifest",
+        "is_current",
+        "uploaded_by",
+        "created_at",
+    )
+    inlines = (DisplayThemeAssetInline,)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(TelegramAccess)
