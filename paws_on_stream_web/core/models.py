@@ -1,3 +1,8 @@
+import hashlib
+import secrets
+import uuid
+from hmac import compare_digest
+
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -135,3 +140,40 @@ class TelegramAccess(models.Model):
 
     def __str__(self):
         return self.label or str(self.telegram_id)
+
+
+class WebDisplayAccess(models.Model):
+    """Singleton credential state for the public passive web display."""
+
+    token_digest = models.CharField(max_length=64, blank=True)
+    generation = models.UUIDField(default=uuid.uuid4, editable=False)
+    is_active = models.BooleanField(default=False)
+    rotated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Active web display link" if self.is_active else "No web display link"
+
+    @classmethod
+    def get_access(cls):
+        access, _ = cls.objects.get_or_create(pk=1)
+        return access
+
+    def rotate(self):
+        token = secrets.token_urlsafe(32)
+        self.token_digest = hashlib.sha256(token.encode()).hexdigest()
+        self.generation = uuid.uuid4()
+        self.is_active = True
+        self.save()
+        return token
+
+    def revoke(self):
+        self.token_digest = ""
+        self.generation = uuid.uuid4()
+        self.is_active = False
+        self.save()
+
+    def accepts(self, token):
+        if not self.is_active or not self.token_digest or not token:
+            return False
+        digest = hashlib.sha256(str(token).encode()).hexdigest()
+        return compare_digest(self.token_digest, digest)

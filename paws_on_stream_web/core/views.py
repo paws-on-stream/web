@@ -14,7 +14,13 @@ from rest_framework.views import APIView
 
 from core.auth import AdminRequiredMixin, StaffRequiredMixin, StrictStaffRequiredMixin
 from core.forms import SettingsForm, TelegramAccessForm
-from core.models import DisplayDevice, DisplayLog, Settings, TelegramAccess
+from core.models import (
+    DisplayDevice,
+    DisplayLog,
+    Settings,
+    TelegramAccess,
+    WebDisplayAccess,
+)
 from core.serializers import (
     DisplayDeviceSerializer,
     DisplayLogSerializer,
@@ -191,6 +197,35 @@ class TelegramAccessUpdateView(AdminRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(self.request, "Telegram-Zugang wurde aktualisiert.")
         return reverse("core:telegram_access_list")
+
+
+class WebDisplayAccessView(AdminRequiredMixin, TemplateView):
+    template_name = "core/web_display_access.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["web_display_access"] = WebDisplayAccess.get_access()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        access = WebDisplayAccess.get_access()
+        action = request.POST.get("action")
+        context = self.get_context_data()
+        if action == "rotate":
+            token = access.rotate()
+            context["generated_url"] = (
+                request.build_absolute_uri(reverse("web_display")) + f"#{token}"
+            )
+            messages.success(request, "Ein neuer Monitoring-Link wurde erzeugt.")
+        elif action == "revoke":
+            access.revoke()
+            messages.success(
+                request, "Der öffentliche Monitoring-Link wurde widerrufen."
+            )
+        else:
+            return HttpResponseBadRequest("Unsupported web display action.")
+        context["web_display_access"] = access
+        return self.render_to_response(context)
 
 
 class DisplayDeviceListView(StaffRequiredMixin, SingleTableView):

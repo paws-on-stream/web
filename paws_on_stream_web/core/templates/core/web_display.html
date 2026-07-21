@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Display — Paws on Stream</title>
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+</head>
+<body class="web-display-page">
+  <main id="web-display" class="web-display" data-access-url="{{ access_url }}" data-feed-url="{{ feed_url }}">
+    <div class="web-display-stage" aria-live="polite"></div>
+    <div class="web-display-access-error" hidden>Zugriff auf das Web Display erforderlich.</div>
+  </main>
+  <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

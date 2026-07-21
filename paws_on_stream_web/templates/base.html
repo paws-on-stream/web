@@ -51,6 +51,13 @@
 </div>
 <header class="navbar sticky-top bg-dark flex-md-nowrap p-0 shadow" data-bs-theme="dark">
   <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6 text-white" href="#">Paws on Stream</a>
+  <div class="ms-auto d-flex align-items-center">
+    {% if request.user.is_authenticated and request.user.is_staff %}
+      <a class="btn btn-sm btn-outline-light me-2" href="{% url 'web_display' %}" target="_blank" rel="noopener noreferrer" title="Web Display öffnen">
+        <i class="bi bi-display" aria-hidden="true"></i>
+        <span class="d-none d-sm-inline ms-1">Web Display öffnen</span>
+      </a>
+    {% endif %}
   <ul class="navbar-nav flex-row d-md-none">
     <li class="nav-item text-nowrap">
       <button class="nav-link px-3 text-white" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
@@ -59,6 +66,7 @@
       </button>
     </li>
   </ul>
+  </div>
 </header>
 <div class="container-fluid">
   <div class="row">
@@ -130,6 +138,12 @@
                 <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and 'telegram_access' in current_url_name %} active{% endif %}" {% if current_ns == 'core' and 'telegram_access' in current_url_name %}aria-current="page"{% endif %} href="{% url 'core:telegram_access_list' %}">
                   <i class="bi bi-person-check" aria-hidden="true"></i>
                   Zugänge
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link d-flex align-items-center gap-2{% if current_ns == 'core' and current_url_name == 'web_display_access' %} active{% endif %}" href="{% url 'core:web_display_access' %}">
+                  <i class="bi bi-broadcast" aria-hidden="true"></i>
+                  Web-Display-Link
                 </a>
               </li>
               {% endif %}

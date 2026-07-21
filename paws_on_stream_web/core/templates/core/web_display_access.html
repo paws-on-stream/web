@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Web-Display-Link — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="mb-0">Öffentlicher Web-Display-Link</h1>
+      <small class="text-muted">Passiven Monitoring-Zugang verwalten</small>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}<div class="alert alert-success">{{ message }}</div>{% endfor %}
+  {% endif %}
+
+  {% if generated_url %}
+    <div class="alert alert-warning">
+      <strong>Jetzt kopieren – der Link wird nur einmal angezeigt.</strong>
+      <input class="form-control mt-2 font-monospace" value="{{ generated_url }}" readonly>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-body">
+      <p>
+        Status:
+        {% if web_display_access.is_active %}
+          <span class="badge text-bg-success">Aktiv</span>
+        {% else %}
+          <span class="badge text-bg-secondary">Inaktiv</span>
+        {% endif %}
+      </p>
+      <p class="text-muted">Eine Rotation widerruft alle zuvor geöffneten öffentlichen Monitor-Sitzungen.</p>
+      <div class="d-flex gap-2">
+        <form method="post">
+          {% csrf_token %}
+          <button class="btn btn-primary" name="action" value="rotate" type="submit">
+            {% if web_display_access.is_active %}Link rotieren{% else %}Link erzeugen{% endif %}
+          </button>
+        </form>
+        {% if web_display_access.is_active %}
+          <form method="post">
+            {% csrf_token %}
+            <button class="btn btn-outline-danger" name="action" value="revoke" type="submit">Widerrufen</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

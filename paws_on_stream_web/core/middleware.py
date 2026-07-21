@@ -35,6 +35,7 @@ class DashboardLoginRequiredMiddleware:
         "/auth/",
         "/media/",
         "/metrics/",
+        "/monitor/",
         "/static/",
     )
 

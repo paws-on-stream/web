@@ -10,6 +10,7 @@ from core.views import (
     SettingsView,
     TelegramAccessListView,
     TelegramAccessUpdateView,
+    WebDisplayAccessView,
 )
 
 app_name = "core"
@@ -44,4 +45,5 @@ urlpatterns = [
         TelegramAccessUpdateView.as_view(),
         name="telegram_access_edit",
     ),
+    path("web-display/", WebDisplayAccessView.as_view(), name="web_display_access"),
 ]

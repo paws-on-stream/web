@@ -124,6 +124,19 @@ enthält den Zeitpunkt des ersten Acks; `DisplayLog` ist die maßgebliche
 gerätespezifische Historie. Dashboard-Filter für „Shown“ und „Approved, not shown“
 werden daraus abgeleitet.
 
+## Web-Display
+
+Staff und Admins öffnen die passive Browser-Vorschau über **Web Display öffnen**
+oben rechts im Dashboard. Die Vorschau übernimmt Chat-/Crawling-Modus,
+Anzeigedauer, Schriftgröße und Scrollgeschwindigkeit aus den Settings und zeigt
+dieselben statischen oder animierten WebP-Assets. Sie registriert kein Device und
+erzeugt weder DisplayLogs noch Display-Acknowledgements.
+
+Admins können unter **Web-Display-Link** einen gemeinsamen öffentlichen
+Monitoring-Link erzeugen, rotieren oder widerrufen. Der Link wird nur direkt nach
+der Erzeugung im Klartext angezeigt. Eine Rotation widerruft auch bereits
+geöffnete öffentliche Monitor-Sitzungen.
+
 ## Event-Sync
 
 Die externe Event-API und ein jq-Filter werden in den Settings konfiguriert.
