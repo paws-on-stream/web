@@ -144,9 +144,15 @@ class ParticipantListView(StaffRequiredMixin, SingleTableView):
 
         checked_in = self.request.GET.get("checked_in", "all")
         if checked_in == "yes":
-            queryset = queryset.filter(checked_in=True)
+            queryset = queryset.filter(
+                Q(checked_in_override=True)
+                | Q(checked_in_override__isnull=True, checked_in=True)
+            )
         elif checked_in == "no":
-            queryset = queryset.filter(checked_in=False)
+            queryset = queryset.filter(
+                Q(checked_in_override=False)
+                | Q(checked_in_override__isnull=True, checked_in=False)
+            )
 
         banned = self.request.GET.get("banned", "all")
         if banned == "yes":
@@ -262,8 +268,10 @@ class ParticipantDetailView(StaffRequiredMixin, DetailView):
             badges.append({"label": "Banned", "variant": "danger"})
         if is_muted:
             badges.append({"label": "Muted", "variant": "info"})
-        if p.checked_in:
+        if p.effective_checked_in:
             badges.append({"label": "Checked In", "variant": "success"})
+        if p.checked_in_override is not None:
+            badges.append({"label": "Override", "variant": "warning"})
         ctx["badges"] = badges
         ctx["is_muted"] = is_muted
 

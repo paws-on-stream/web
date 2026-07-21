@@ -21,8 +21,16 @@
             <dd>{{ participant.reg_id|default:"-" }}</dd>
           </div>
           <div class="list-group-item d-flex justify-content-between">
-            <dt>Checked In</dt>
-            <dd>{{ participant.checked_in|yesno:"Yes,No" }}</dd>
+            <dt>Wirksam eingecheckt</dt>
+            <dd>{{ participant.effective_checked_in|yesno:"Ja,Nein" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Reg-System</dt>
+            <dd>{{ participant.checked_in|yesno:"Ja,Nein" }}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Override</dt>
+            <dd>{{ participant.get_checked_in_override_display }}</dd>
           </div>
           <div class="list-group-item d-flex justify-content-between">
             <dt>Banned</dt>

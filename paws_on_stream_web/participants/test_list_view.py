@@ -55,6 +55,16 @@ class ParticipantListPageFilterTest(TestCase):
         assert response.status_code == 200
         assert self._result_ids(response) == {self.alpha.id, self.gamma.id}
 
+    def test_filter_uses_effective_override_status(self):
+        self.beta.checked_in_override = True
+        self.beta.save(update_fields=["checked_in_override"])
+        self.gamma.checked_in_override = False
+        self.gamma.save(update_fields=["checked_in_override"])
+
+        response = self.client.get("/participants/participants/?checked_in=yes")
+
+        assert self._result_ids(response) == {self.alpha.id, self.beta.id}
+
     def test_filters_banned_no(self):
         response = self.client.get("/participants/participants/?banned=no")
         assert response.status_code == 200

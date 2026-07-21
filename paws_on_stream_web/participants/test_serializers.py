@@ -33,6 +33,16 @@ class ParticipantSerializerTest(TestCase):
         assert instance.display_name == "Test User"
         assert instance.checked_in
 
+    def test_representation_uses_override_and_exposes_registration_status(self):
+        participant = ParticipantFactory(
+            checked_in=False,
+            checked_in_override=True,
+        )
+        data = ParticipantSerializer(participant).data
+        assert data["checked_in"] is True
+        assert data["registration_checked_in"] is False
+        assert data["checked_in_override"] is True
+
 
 class ParticipantCreateSerializerTest(TestCase):
     def test_validates_non_empty_display_name(self):

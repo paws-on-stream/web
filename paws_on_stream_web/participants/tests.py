@@ -24,6 +24,17 @@ class ParticipantsModelTest(TestCase):
         self.assertFalse(p.checked_in)
         self.assertEqual(p.spam_count, 0)
 
+    def test_checked_in_override_controls_effective_status(self):
+        p = ParticipantFactory(checked_in=False, checked_in_override=True)
+        self.assertTrue(p.effective_checked_in)
+
+        p.checked_in = True
+        p.checked_in_override = False
+        self.assertFalse(p.effective_checked_in)
+
+        p.checked_in_override = None
+        self.assertTrue(p.effective_checked_in)
+
     def test_empty_or_null_fields(self):
         p = Participant.objects.get(telegram_id=self.participant.telegram_id)
         p.reg_id = None

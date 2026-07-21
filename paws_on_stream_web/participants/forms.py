@@ -10,7 +10,7 @@ class ParticipantForm(forms.ModelForm):
             "telegram_id",
             "reg_id",
             "display_name",
-            "checked_in",
+            "checked_in_override",
             "banned",
             "muted_until",
         ]
@@ -18,5 +18,6 @@ class ParticipantForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            if field_name not in {"checked_in", "banned"}:
+            if field_name not in {"banned"}:
                 field.widget.attrs.update({"class": "form-control"})
+        self.fields["checked_in_override"].widget.attrs["class"] = "form-select"

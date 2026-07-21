@@ -129,7 +129,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not participant.checked_in:
+        if not participant.effective_checked_in:
             return Response(
                 {
                     "status": "rejected",

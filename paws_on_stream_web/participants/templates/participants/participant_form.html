@@ -14,7 +14,7 @@
         {% for field in form %}
           <div class="col-md-6">
             <div class="form-floating">
-              {% if field.name == "checked_in" or field.name == "banned" %}
+              {% if field.name == "banned" %}
                 {{ field }}
                 <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
               {% else %}

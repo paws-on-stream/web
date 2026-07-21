@@ -134,6 +134,24 @@ class RegSyncDueParticipantsTest(TestCase):
         assert failed == 0
 
     @patch("participants.reg_sync.fetch_reg_status")
+    def test_sync_updates_raw_status_without_removing_override(self, mock_fetch):
+        participant = ParticipantFactory(
+            last_status_check=None,
+            checked_in=False,
+            checked_in_override=False,
+        )
+        mock_fetch.return_value = parse_reg_status(
+            {"checked_in": True, "reg_id": participant.reg_id}
+        )
+
+        sync_due_participants()
+
+        participant.refresh_from_db()
+        assert participant.checked_in is True
+        assert participant.checked_in_override is False
+        assert participant.effective_checked_in is False
+
+    @patch("participants.reg_sync.fetch_reg_status")
     def test_one_failure_does_not_abort_remaining_participants(self, mock_fetch):
         ParticipantFactory(last_status_check=None)
         ParticipantFactory(last_status_check=None)

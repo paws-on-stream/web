@@ -5,10 +5,22 @@ from django.urls import reverse
 class Participant(models.Model):
     """Represents a convention participant who can send messages."""
 
+    CHECKED_IN_OVERRIDE_CHOICES = (
+        (None, "Automatisch (Reg-System)"),
+        (True, "Immer eingecheckt"),
+        (False, "Immer ausgecheckt"),
+    )
+
     telegram_id = models.BigIntegerField(unique=True)
     reg_id = models.IntegerField(null=True, blank=True)
     display_name = models.CharField(max_length=128)
     checked_in = models.BooleanField(default=False)
+    checked_in_override = models.BooleanField(
+        null=True,
+        blank=True,
+        choices=CHECKED_IN_OVERRIDE_CHOICES,
+        default=None,
+    )
     last_status_check = models.DateTimeField(null=True, blank=True)
     banned = models.BooleanField(default=False)
     muted_until = models.DateTimeField(null=True, blank=True)
@@ -28,3 +40,9 @@ class Participant(models.Model):
 
     def get_absolute_url(self):
         return reverse("participants:participant_detail", kwargs={"pk": self.pk})
+
+    @property
+    def effective_checked_in(self):
+        if self.checked_in_override is not None:
+            return self.checked_in_override
+        return self.checked_in

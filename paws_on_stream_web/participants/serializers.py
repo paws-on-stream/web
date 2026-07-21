@@ -6,6 +6,11 @@ from participants.models import Participant
 class ParticipantSerializer(serializers.ModelSerializer):
     """Serializer for Participant model."""
 
+    checked_in = serializers.BooleanField(required=False)
+    registration_checked_in = serializers.BooleanField(
+        source="checked_in", read_only=True
+    )
+
     class Meta:
         model = Participant
         fields = [
@@ -14,6 +19,8 @@ class ParticipantSerializer(serializers.ModelSerializer):
             "reg_id",
             "display_name",
             "checked_in",
+            "registration_checked_in",
+            "checked_in_override",
             "last_status_check",
             "banned",
             "muted_until",
@@ -22,6 +29,11 @@ class ParticipantSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["checked_in"] = instance.effective_checked_in
+        return data
 
 
 class ParticipantCreateSerializer(serializers.ModelSerializer):

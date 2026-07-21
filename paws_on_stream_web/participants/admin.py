@@ -9,19 +9,28 @@ class ParticipantAdmin(admin.ModelAdmin):
         "display_name",
         "telegram_id",
         "checked_in",
+        "checked_in_override",
         "banned",
         "spam_count",
         "created_at",
     )
-    list_filter = ("checked_in", "banned", "created_at")
+    list_filter = ("checked_in", "checked_in_override", "banned", "created_at")
     search_fields = ("display_name", "telegram_id")
-    list_editable = ("checked_in", "banned")
+    list_editable = ("checked_in_override", "banned")
     readonly_fields = ("telegram_id", "spam_count", "created_at", "updated_at")
     fieldsets = (
         ("Identity", {"fields": ("telegram_id", "display_name", "reg_id")}),
         (
             "Status",
-            {"fields": ("checked_in", "banned", "muted_until", "last_status_check")},
+            {
+                "fields": (
+                    "checked_in",
+                    "checked_in_override",
+                    "banned",
+                    "muted_until",
+                    "last_status_check",
+                )
+            },
         ),
         ("Spam", {"fields": ("spam_count",)}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),

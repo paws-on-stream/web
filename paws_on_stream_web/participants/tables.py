@@ -61,9 +61,12 @@ class ParticipantTable(tables.Table):
         return avatar
 
     def render_checked_in(self, record):
-        if record.checked_in:
-            return format_html('<span class="badge bg-success">{}</span>', "✓")
-        return format_html('<span class="badge bg-secondary">{}</span>', "✗")
+        suffix = " (Override)" if record.checked_in_override is not None else ""
+        if record.effective_checked_in:
+            return format_html(
+                '<span class="badge bg-success">{}{}</span>', "✓", suffix
+            )
+        return format_html('<span class="badge bg-secondary">{}{}</span>', "✗", suffix)
 
     def render_banned(self, record):
         if record.banned:

@@ -40,7 +40,7 @@ class ParticipantSummarySerializer(serializers.Serializer):
 
     display_name = serializers.CharField()
     telegram_id = serializers.IntegerField()
-    checked_in = serializers.BooleanField()
+    checked_in = serializers.BooleanField(source="effective_checked_in")
 
 
 class MessageSerializer(serializers.ModelSerializer):
