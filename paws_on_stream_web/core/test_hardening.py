@@ -45,3 +45,19 @@ class ApiRoleTest(TestCase):
             HTTP_X_API_TOKEN="bot-token",
         )
         assert response.status_code == 403
+
+    def test_display_token_can_fetch_central_theme(self):
+        response = self.client.get(
+            "/api/v1/themes/east-readable/",
+            HTTP_X_API_TOKEN="display-token",
+        )
+        assert response.status_code == 200
+        assert response.json()["schema_version"] == 2
+        assert response.json()["name"] == "east-readable"
+
+    def test_unknown_central_theme_is_not_found(self):
+        response = self.client.get(
+            "/api/v1/themes/not-there/",
+            HTTP_X_API_TOKEN="display-token",
+        )
+        assert response.status_code == 404

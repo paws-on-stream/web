@@ -137,6 +137,12 @@ Monitoring-Link erzeugen, rotieren oder widerrufen. Der Link wird nur direkt nac
 der Erzeugung im Klartext angezeigt. Eine Rotation widerruft auch bereits
 geöffnete öffentliche Monitor-Sitzungen.
 
+Das Web-Display verwendet standardmäßig das zentrale, kontrastreiche Theme
+`east-readable`. Das Theme-Schema liegt im Backend und ist für Display-Clients
+mit Display-Token unter `GET /api/v1/themes/east-readable/` abrufbar. Die
+Raspberry-Pi-Clients verwenden weiterhin ihre lokalen Themes, bis dort der
+zentrale Abruf mit lokalem Fallback-Cache umgesetzt wird.
+
 ## Event-Sync
 
 Die externe Event-API und ein jq-Filter werden in den Settings konfiguriert.

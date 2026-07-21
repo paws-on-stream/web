@@ -20,11 +20,17 @@ class Settings(models.Model):
         ("chat", "Chat"),
         ("crawling", "Crawling"),
     ]
+    WEB_DISPLAY_THEMES = [("east-readable", "EAST Readable")]
 
     rate_limit_per_minute = models.IntegerField(default=10)
     max_message_length = models.IntegerField(default=4096)
     bot_status = models.CharField(max_length=16, choices=BOT_STATUSES, default="online")
     overlay_theme = models.CharField(max_length=32, default="default")
+    web_display_theme = models.CharField(
+        max_length=32,
+        choices=WEB_DISPLAY_THEMES,
+        default="east-readable",
+    )
     overlay_font_size = models.IntegerField(default=24)
     auto_approve = models.BooleanField(default=False)
     spam_threshold = models.PositiveIntegerField(default=5)

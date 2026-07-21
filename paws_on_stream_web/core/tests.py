@@ -21,6 +21,7 @@ class SettingsModelTest(TestCase):
         self.assertEqual(s.max_message_length, 4096)
         self.assertEqual(s.bot_status, "online")
         self.assertEqual(s.overlay_theme, "default")
+        self.assertEqual(s.web_display_theme, "east-readable")
         self.assertEqual(s.overlay_font_size, 24)
         self.assertFalse(s.auto_approve)
         self.assertEqual(s.display_duration_sec, 8)

@@ -45,6 +45,7 @@ class DisplayUIViewsTest(TestCase):
                 "spam_threshold": 5,
                 "bot_status": "online",
                 "overlay_theme": "default",
+                "web_display_theme": "east-readable",
                 "overlay_font_size": 24,
                 "display_duration_sec": 8,
                 "display_mode": "chat",

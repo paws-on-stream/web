@@ -39,6 +39,7 @@ class SettingsForm(forms.ModelForm):
             "max_message_length",
             "bot_status",
             "overlay_theme",
+            "web_display_theme",
             "overlay_font_size",
             "auto_approve",
             "spam_threshold",
@@ -66,6 +67,7 @@ class SettingsForm(forms.ModelForm):
                 "automatisch freigegeben."
             ),
             "overlay_theme": "Name des Themes, das der Display-Client laden soll.",
+            "web_display_theme": "Zentrales Theme für die Browser-Vorschau.",
             "display_duration_sec": "Mindestanzeigedauer einer Nachricht.",
             "scroll_speed_px": "Pixel pro Frame im Crawling-Modus.",
             "reg_api_url": (
@@ -90,7 +92,7 @@ class SettingsForm(forms.ModelForm):
                 field.widget.attrs["class"] = "form-check-input"
             else:
                 field.widget.attrs["class"] = "form-control"
-        for name in ("bot_status", "display_mode"):
+        for name in ("bot_status", "display_mode", "web_display_theme"):
             self.fields[name].widget.attrs["class"] = "form-select"
 
     def clean_event_api_jsonq_filter(self):

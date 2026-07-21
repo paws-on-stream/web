@@ -80,7 +80,33 @@ if (monitorRoot) {
     return element;
   }
 
-  function applySettings(next) {
+  function safeColor(value, fallback) {
+    return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
+  }
+
+  function applyTheme(theme) {
+    const chat = theme?.chat || {};
+    const chatBackground = chat.background || {};
+    const styles = chat.styles || {};
+    const ticker = theme?.ticker || {};
+    const tickerBackground = ticker.background || {};
+    const root = monitorRoot.style;
+    root.setProperty("--web-display-canvas", safeColor(theme?.canvas?.background_color, "#0f172a"));
+    root.setProperty("--web-display-accent", safeColor(theme?.canvas?.background_accent, "#1e3a5f"));
+    root.setProperty("--web-display-bubble", safeColor(chatBackground.color, "#f8fafc"));
+    root.setProperty("--web-display-border", safeColor(chatBackground.border_color, "#38bdf8"));
+    root.setProperty("--web-display-name", safeColor(styles.name?.color, "#5b21b6"));
+    root.setProperty("--web-display-text", safeColor(styles.message?.color, "#111827"));
+    root.setProperty("--web-display-ticker", safeColor(tickerBackground.color, "#172033"));
+    root.setProperty("--web-display-ticker-border", safeColor(tickerBackground.border_color, "#38bdf8"));
+    root.setProperty("--web-display-ticker-name", safeColor(ticker.name?.color, "#c4b5fd"));
+    root.setProperty("--web-display-ticker-text", safeColor(ticker.text?.color, "#f8fafc"));
+    root.setProperty("--web-display-max-width", `${Math.max(320, Math.min(1400, Number(chat.max_width) || 980))}px`);
+    root.setProperty("--web-display-media-width", `${Math.max(160, Math.min(1280, Number(styles.media?.max_width) || 760))}px`);
+    root.setProperty("--web-display-media-height", `${Math.max(120, Math.min(900, Number(styles.media?.max_height) || 460))}px`);
+  }
+
+  function applySettings(next, theme) {
     const previousMode = settings.display_mode;
     settings = {...settings, ...next};
     monitorRoot.dataset.mode = settings.display_mode;
@@ -89,6 +115,7 @@ if (monitorRoot) {
       "--web-display-font-size",
       `${Math.max(12, Number(settings.overlay_font_size) || 24)}px`,
     );
+    applyTheme(theme || {});
     if (previousMode !== settings.display_mode) {
       if (renderTimer) window.clearTimeout(renderTimer);
       renderTimer = null;
@@ -164,7 +191,7 @@ if (monitorRoot) {
       accessError.hidden = true;
       const payload = await response.json();
       cursor = payload.cursor || cursor;
-      applySettings(payload.settings || {});
+      applySettings(payload.settings || {}, payload.theme || {});
       enqueue(payload.messages || []);
       failures = 0;
       window.setTimeout(poll, Math.max(1, payload.next_poll_after_sec || 3) * 1000);

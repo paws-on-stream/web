@@ -14,6 +14,7 @@ class SettingsSerializer(serializers.ModelSerializer):
             "max_message_length",
             "bot_status",
             "overlay_theme",
+            "web_display_theme",
             "overlay_font_size",
             "auto_approve",
             "spam_threshold",

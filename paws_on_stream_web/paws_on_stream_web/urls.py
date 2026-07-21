@@ -22,7 +22,12 @@ from core.auth_views import (
     telegram_logout,
     telegram_start,
 )
-from core.monitor_views import web_display, web_display_access, web_display_feed
+from core.monitor_views import (
+    display_theme_api,
+    web_display,
+    web_display_access,
+    web_display_feed,
+)
 from core.views import (
     DisplayDeviceViewSet,
     DisplayLogViewSet,
@@ -66,6 +71,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/health/", HealthAPIView.as_view()),
     path("api/v1/readiness/", ReadinessAPIView.as_view()),
+    path("api/v1/themes/<slug:name>/", display_theme_api, name="display_theme_api"),
     path("metrics/", MetricsAPIView.as_view()),
     path("monitor/", web_display, name="web_display"),
     path("monitor/access/", web_display_access, name="web_display_access"),

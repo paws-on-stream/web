@@ -37,12 +37,25 @@
 
 .web-display {
   --web-display-font-size: 24px;
+  --web-display-canvas: #0f172a;
+  --web-display-accent: #1e3a5f;
+  --web-display-bubble: #f8fafc;
+  --web-display-border: #38bdf8;
+  --web-display-name: #5b21b6;
+  --web-display-text: #111827;
+  --web-display-ticker: #172033;
+  --web-display-ticker-border: #38bdf8;
+  --web-display-ticker-name: #c4b5fd;
+  --web-display-ticker-text: #f8fafc;
+  --web-display-max-width: 980px;
+  --web-display-media-width: 760px;
+  --web-display-media-height: 460px;
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  color: #111827;
-  background: radial-gradient(circle at 50% 30%, #344154, #171d26 75%);
+  color: var(--web-display-text);
+  background: radial-gradient(circle at 50% 30%, var(--web-display-accent), var(--web-display-canvas) 75%);
   font-size: var(--web-display-font-size);
 }
 
@@ -58,19 +71,19 @@
 .web-display-message {
   display: grid;
   gap: .65rem;
-  width: min(76vw, 900px);
+  width: min(82vw, var(--web-display-max-width));
   max-height: 86vh;
   padding: clamp(1rem, 3vw, 2.5rem);
   overflow: hidden;
-  border: 3px solid rgb(255 255 255 / 25%);
+  border: 3px solid var(--web-display-border);
   border-radius: 1.5rem;
-  background: #a5f2fb;
+  background: var(--web-display-bubble);
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%);
   animation: web-display-fade-in .3s ease-out;
 }
 
 .web-display-name {
-  color: #6548dc;
+  color: var(--web-display-name);
   font-size: 1.12em;
   font-weight: 700;
 }
@@ -90,9 +103,9 @@
 .web-display-media {
   display: block;
   width: auto;
-  max-width: 100%;
+  max-width: min(100%, var(--web-display-media-width));
   height: auto;
-  max-height: 50vh;
+  max-height: min(55vh, var(--web-display-media-height));
   margin-inline: auto;
   object-fit: contain;
 }
@@ -117,8 +130,9 @@
   max-width: none;
   padding: .7em 1.35em;
   border-radius: .8em;
-  background: #1f2b3a;
-  color: #fff;
+  border: 2px solid var(--web-display-ticker-border);
+  background: var(--web-display-ticker);
+  color: var(--web-display-ticker-text);
   box-shadow: 0 .75rem 2rem rgb(0 0 0 / 35%);
   white-space: nowrap;
 }
@@ -126,6 +140,10 @@
 .web-display-ticker .web-display-name::after {
   content: " •";
   color: #fff;
+}
+
+.web-display-ticker .web-display-name {
+  color: var(--web-display-ticker-name);
 }
 
 .web-display-ticker .web-display-media {

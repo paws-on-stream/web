@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "name": "east-readable",
+  "canvas": {
+    "background_color": "#0f172a",
+    "background_accent": "#1e3a5f"
+  },
+  "fonts": {
+    "default": {
+      "file": "freesansbold.ttf",
+      "size": 28
+    }
+  },
+  "chat": {
+    "position": {"x": 40, "y": 40},
+    "scale": 1.0,
+    "max_width": 980,
+    "max_visible_messages": 1,
+    "gap_between_messages": 20,
+    "background": {
+      "color": "#f8fafc",
+      "border_color": "#38bdf8",
+      "padding": {"x": 36, "y": 28}
+    },
+    "template": {
+      "elements": [
+        {"field": "display_name", "style": "name", "margin_bottom": 8},
+        {"field": "content", "style": "message", "margin_bottom": 16},
+        {"field": "media", "style": "media"}
+      ]
+    },
+    "styles": {
+      "name": {"color": "#5b21b6", "font_size": 30, "bold": true},
+      "message": {
+        "color": "#111827",
+        "font_size": 28,
+        "wrap": true,
+        "line_spacing": 7
+      },
+      "media": {"alignment": "center", "max_width": 760, "max_height": 460}
+    },
+    "animation": {"fade_in_ms": 250, "hold_ms": null, "fade_out_ms": 250}
+  },
+  "ticker": {
+    "position": {"x": 32, "y": -104},
+    "width": -64,
+    "scale": 1.0,
+    "background": {"color": "#172033", "border_color": "#38bdf8"},
+    "name": {"color": "#c4b5fd"},
+    "text": {"color": "#f8fafc", "font_size": 28},
+    "padding": {"x": 32, "y": 16},
+    "separator": "  •  "
+  },
+  "luma": {"mode": "opaque-content"}
+}

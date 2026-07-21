@@ -16,6 +16,7 @@ from django.views.decorators.http import require_GET, require_POST
 from streaming.models import Message
 
 from core.models import Settings, WebDisplayAccess
+from core.themes import get_display_theme
 
 COOKIE_NAME = "web_display_access"
 COOKIE_MAX_AGE = int(timedelta(days=30).total_seconds())
@@ -187,6 +188,7 @@ def web_display_feed(request):
         next_cursor = _encode_cursor(now)
 
     app_settings = Settings.get_settings()
+    theme = get_display_theme(app_settings.web_display_theme)
     response = JsonResponse(
         {
             "messages": [_message_payload(request, item) for item in messages],
@@ -195,10 +197,22 @@ def web_display_feed(request):
                 "display_duration_sec": app_settings.display_duration_sec,
                 "scroll_speed_px": app_settings.scroll_speed_px,
                 "overlay_font_size": app_settings.overlay_font_size,
-                "overlay_theme": app_settings.overlay_theme,
+                "overlay_theme": app_settings.web_display_theme,
             },
+            "theme": theme,
             "cursor": next_cursor,
             "next_poll_after_sec": 3,
         }
     )
     return _secure_response(response)
+
+
+@require_GET
+def display_theme_api(request, name):  # noqa: ARG001
+    try:
+        theme = get_display_theme(name, fallback=False)
+    except (FileNotFoundError, ValueError):
+        return JsonResponse({"detail": "Unknown display theme."}, status=404)
+    response = JsonResponse(theme)
+    response["Cache-Control"] = "public, max-age=300"
+    return response

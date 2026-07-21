@@ -29,6 +29,7 @@ class SettingsAdmin(admin.ModelAdmin):
                 "fields": (
                     "display_mode",
                     "overlay_theme",
+                    "web_display_theme",
                     "overlay_font_size",
                     "display_duration_sec",
                     "scroll_speed_px",

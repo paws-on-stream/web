@@ -125,6 +125,9 @@ class PublicWebDisplayTest(TestCase):
         assert [item["id"] for item in payload["messages"]] == [str(latest.id)]
         assert str(older.id) not in {item["id"] for item in payload["messages"]}
         assert payload["settings"]["display_mode"] == "chat"
+        assert payload["settings"]["overlay_theme"] == "east-readable"
+        assert payload["theme"]["name"] == "east-readable"
+        assert payload["theme"]["chat"]["styles"]["message"]["color"] == "#111827"
 
     def test_follow_up_feed_returns_new_approvals_without_side_effects(self):
         self._authorize()

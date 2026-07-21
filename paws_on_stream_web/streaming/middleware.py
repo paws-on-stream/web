@@ -64,7 +64,9 @@ class ApiTokenMiddleware:
     def _display_path_allowed(request):
         path = request.path
         if request.method == "GET" and (
-            path == "/api/v1/messages/display/" or path.startswith("/api/v1/settings/")
+            path == "/api/v1/messages/display/"
+            or path.startswith("/api/v1/settings/")
+            or path.startswith("/api/v1/themes/")
         ):
             return True
         return request.method == "POST" and (
