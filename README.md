@@ -64,6 +64,13 @@ liefert eine stabile Asset-ID/URL sowie Format-, Animations-, Größen-, Dauer-,
 Frame-, Alpha- und SHA-256-Metadaten. Mediennachrichten referenzieren das Asset
 über `media_asset_id`; direkte externe Medien- oder Video-URLs werden abgelehnt.
 
+Eingehende Nachrichten durchlaufen eine feste, pluggable Spamfilter-Kette aus
+Längen-, Wiederholungs-, Emoji-, URL-, Tempo- und Teilnehmerhistorienprüfung.
+Der Score liegt zwischen `0.0` und `1.0`; der konfigurierbare Grenzwert ist
+standardmäßig `0.70`. Im Auto-Approve-Modus werden nur Nachrichten unterhalb des
+Grenzwerts freigegeben. Auffällige Nachrichten bleiben zur manuellen Prüfung
+`pending` und erhöhen den persistenten Spam-Zähler des Teilnehmers.
+
 Beispiel:
 
 ```bash
