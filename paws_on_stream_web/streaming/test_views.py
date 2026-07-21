@@ -82,17 +82,6 @@ class MessageListViewTest(APITestCase):
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]) == 3
 
-    def test_displayed_filter(self):
-        TextMessageFactory.create_batch(
-            3, participant=self.participant, event=self.event, status="displayed"
-        )
-        TextMessageFactory.create_batch(
-            2, participant=self.participant, event=self.event, status="pending"
-        )
-        response = self.client.get("/api/v1/messages/displayed/")
-        assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()["results"]) == 3
-
 
 @override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageCreateViewTest(APITestCase):
@@ -180,28 +169,6 @@ class MessageRejectActionTest(APITestCase):
 
 
 @override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
-class MessageDisplayActionTest(APITestCase):
-    def setUp(self):
-        self.client.credentials(HTTP_X_API_TOKEN=TEST_TOKEN)
-        cache.clear()
-        self.participant = ParticipantFactory()
-        self.message = TextMessageFactory(
-            participant=self.participant,
-            content="Test message",
-            status="approved",
-        )
-
-    def test_display_message(self):
-        response = self.client.post(f"/api/v1/messages/{self.message.id}/display/")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "displayed"
-        assert response.json()["displayed_at"] is not None
-        self.message.refresh_from_db()
-        assert self.message.status == "displayed"
-        assert self.message.displayed_at is not None
-
-
-@override_settings(API_AUTH_TOKEN=TEST_TOKEN, DEFAULT_THROTTLE_CLASSES=[])
 class MessageViewSetAuthTest(APITestCase):
     def test_forbidden_without_token(self):
         response = self.client.get("/api/v1/messages/")
@@ -275,3 +242,35 @@ class DisplayActionsThrottleExemptionTest(APITestCase):
         assert response.status_code == status.HTTP_200_OK
         log = DisplayLog.objects.get(message=self.message, device__device_id="pi-01")
         assert log.display_duration_actual == 9
+
+    def test_ack_keeps_message_approved_for_other_displays(self):
+        from core.factories import DisplayDeviceFactory
+
+        DisplayDeviceFactory(device_id="pi-02", hostname="pi-02.local")
+        response = self.client.post(
+            f"/api/v1/messages/{self.message.id}/displayed/",
+            {"device_id": "pi-01"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        self.message.refresh_from_db()
+        assert self.message.status == "approved"
+        assert self.message.displayed_at is not None
+
+        self.client.credentials(
+            HTTP_X_API_TOKEN=TEST_TOKEN,
+            HTTP_X_DEVICE_ID="pi-02",
+        )
+        poll = self.client.get("/api/v1/messages/display/")
+        ids = {item["id"] for item in poll.json()["results"]}
+        assert str(self.message.id) in ids
+
+    def test_ack_rejects_non_approved_message(self):
+        self.message.status = "rejected"
+        self.message.save(update_fields=["status"])
+        response = self.client.post(
+            f"/api/v1/messages/{self.message.id}/displayed/",
+            {"device_id": "pi-01"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST

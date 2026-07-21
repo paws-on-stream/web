@@ -188,7 +188,7 @@ def kpi_endpoint(request):
         "auto_approve": settings.auto_approve,
         "pending_count": Message.objects.filter(status="pending").count(),
         "approved_count": Message.objects.filter(status="approved").count(),
-        "displayed_count": Message.objects.filter(status="displayed").count(),
+        "displayed_count": Message.objects.filter(displayed_at__isnull=False).count(),
         "rejected_count": Message.objects.filter(status="rejected").count(),
         "messages_per_minute": round(
             Message.objects.filter(created_at__gte=five_min_ago).count() / 5, 1

@@ -37,7 +37,8 @@
             <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
             <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>Approved</option>
             <option value="rejected" {% if filters.status == "rejected" %}selected{% endif %}>Rejected</option>
-            <option value="displayed" {% if filters.status == "displayed" %}selected{% endif %}>Displayed</option>
+            <option value="shown" {% if filters.status == "shown" %}selected{% endif %}>Shown at least once</option>
+            <option value="not_shown" {% if filters.status == "not_shown" %}selected{% endif %}>Approved, not shown</option>
           </select>
         </div>
         <div class="col-md-2">

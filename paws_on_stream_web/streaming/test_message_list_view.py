@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from participants.factories import ParticipantFactory
 
 from streaming.factories import EventFactory, TextMessageFactory
@@ -76,6 +77,16 @@ class MessageListPageFilterTest(TestCase):
         assert response.status_code == 200
         result_ids = self._result_ids(response)
         assert result_ids == {self.msg_photo_approved.id}, result_ids
+
+    def test_filters_by_first_display_ack(self):
+        self.msg_photo_approved.displayed_at = timezone.now()
+        self.msg_photo_approved.save(update_fields=["displayed_at"])
+
+        shown = self.client.get("/streaming/messages/?status=shown")
+        not_shown = self.client.get("/streaming/messages/?status=not_shown")
+
+        assert self._result_ids(shown) == {self.msg_photo_approved.id}
+        assert self._result_ids(not_shown) == set()
 
     def test_filters_by_media_type(self):
         response = self.client.get("/streaming/messages/?media_type=sticker")

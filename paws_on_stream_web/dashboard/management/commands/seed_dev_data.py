@@ -168,9 +168,7 @@ class Command(BaseCommand):
         )
 
         # --- Messages ---
-        statuses = (
-            ["pending"] * 15 + ["approved"] * 20 + ["rejected"] * 10 + ["displayed"] * 5
-        )
+        statuses = ["pending"] * 15 + ["approved"] * 25 + ["rejected"] * 10
         random.shuffle(statuses)
 
         media_types = ["text"] * 35 + ["photo"] * 8 + ["gif"] * 5 + ["sticker"] * 2
@@ -195,9 +193,12 @@ class Command(BaseCommand):
                 sticker_emoji=emoji,
                 status=status,
                 created_at=created,
-                approved_by=mod_user if status in ("approved", "displayed") else None,
+                approved_by=mod_user if status == "approved" else None,
                 approved_at=(created + timedelta(seconds=5))
-                if status in ("approved", "displayed")
+                if status == "approved"
+                else None,
+                displayed_at=(created + timedelta(seconds=15))
+                if status == "approved" and i % 5 == 0
                 else None,
             )
             messages_created += 1

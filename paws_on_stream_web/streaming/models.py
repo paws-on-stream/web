@@ -141,7 +141,6 @@ class Message(models.Model):
         ("pending", "Pending"),
         ("approved", "Approved"),
         ("rejected", "Rejected"),
-        ("displayed", "Displayed"),
     ]
 
     REJECTION_REASONS = [

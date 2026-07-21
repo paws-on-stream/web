@@ -267,26 +267,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         message.save(update_fields=["status", "rejection_reason"])
         return Response(self.get_serializer(message).data)
 
-    # --- display: approved → displayed ----------------------------------------
-
-    @action(detail=True, methods=["post"])
-    def display(self, request, pk=None):  # noqa: ARG002
-        message = self.get_object()
-        if message.status != "approved":
-            return Response(
-                {
-                    "status": [
-                        f"Message is '{message.status}'"
-                        "— only approved messages can be displayed."
-                    ]
-                },
-                status=400,
-            )
-        message.status = "displayed"
-        message.displayed_at = datetime.now(tz=UTC)
-        message.save(update_fields=["status", "displayed_at"])
-        return Response(self.get_serializer(message).data)
-
     # --- GET /display/: approved messages with since + device filter -----------
 
     @action(detail=False, methods=["get"], url_path="display")
@@ -370,6 +350,11 @@ class MessageViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="displayed")
     def mark_displayed(self, request, pk=None):  # noqa: ARG002
         message = self.get_object()
+        if message.status != "approved":
+            return Response(
+                {"status": ["Only approved messages can be acknowledged."]},
+                status=400,
+            )
         device_id = request.data.get("device_id")
         duration_actual = request.data.get("display_duration_actual")
         if not device_id:
@@ -419,16 +404,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], url_path="displayed")
-    def displayed(self, request):  # noqa: ARG002
-        queryset = self.queryset.filter(status="displayed")
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
 
 class MessageListView(StaffRequiredMixin, SingleTableView):
     model = Message
@@ -452,8 +427,12 @@ class MessageListView(StaffRequiredMixin, SingleTableView):
             )
 
         status_filter = self.request.GET.get("status", "all")
-        if status_filter in {"pending", "approved", "rejected", "displayed"}:
+        if status_filter in {"pending", "approved", "rejected"}:
             queryset = queryset.filter(status=status_filter)
+        elif status_filter == "shown":
+            queryset = queryset.filter(displayed_at__isnull=False)
+        elif status_filter == "not_shown":
+            queryset = queryset.filter(status="approved", displayed_at__isnull=True)
 
         media_filter = self.request.GET.get("media_type", "all")
         if media_filter in {"text", "photo", "gif", "sticker"}:

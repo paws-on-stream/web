@@ -74,12 +74,14 @@ class MessageTable(tables.Table):
             "pending": "warning text-dark",
             "approved": "success",
             "rejected": "danger",
-            "displayed": "secondary",
         }.get(status, "secondary")
+        label = value or status
+        if status == "approved" and record.displayed_at:
+            label = "Approved · shown"
         return format_html(
             '<span class="badge bg-{}">{}</span>',
             variant,
-            value or status,
+            label,
         )
 
     def render_content(self, value, record):
