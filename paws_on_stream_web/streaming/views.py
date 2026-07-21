@@ -23,6 +23,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from streaming.forms import EventForm
 from streaming.models import DisplayEvent, Event, MediaAsset, Message
 from streaming.sanitization import sanitize_content
 from streaming.serializers import EventSerializer, MessageSerializer
@@ -602,15 +603,7 @@ class EventDetailView(StaffRequiredMixin, DetailView):
 
 class EventUpdateView(StaffRequiredMixin, UpdateView):
     model = Event
-    fields = [
-        "name",
-        "starts_at",
-        "ends_at",
-        "is_active",
-        "allow_messages",
-        "display_mode",
-        "scroll_speed_px",
-    ]
+    form_class = EventForm
     template_name = "streaming/event_form.html"
 
     def get_success_url(self):
@@ -619,15 +612,7 @@ class EventUpdateView(StaffRequiredMixin, UpdateView):
 
 class EventCreateView(StaffRequiredMixin, CreateView):
     model = Event
-    fields = [
-        "name",
-        "starts_at",
-        "ends_at",
-        "is_active",
-        "allow_messages",
-        "display_mode",
-        "scroll_speed_px",
-    ]
+    form_class = EventForm
     template_name = "streaming/event_form.html"
 
     def get_success_url(self):

@@ -1,0 +1,18 @@
+<div class="{% if wide %}col-12{% else %}col-md-6{% endif %} form-field">
+  {% if field.field.widget.input_type == "checkbox" %}
+    <div class="form-check form-switch form-check-panel">
+      {{ field }}
+      <div>
+        <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.help_text %}<div class="form-text" id="{{ field.id_for_label }}_help">{{ field.help_text }}</div>{% endif %}
+      </div>
+    </div>
+  {% else %}
+    <label class="form-label" for="{{ field.id_for_label }}">
+      {{ field.label }}{% if field.field.required %}<span class="required-indicator" aria-hidden="true">*</span>{% endif %}
+    </label>
+    {{ field }}
+    {% if field.help_text %}<div class="form-text" id="{{ field.id_for_label }}_help">{{ field.help_text }}</div>{% endif %}
+  {% endif %}
+  {% if field.errors %}<div class="invalid-feedback d-block" id="{{ field.id_for_label }}_error">{{ field.errors.0 }}</div>{% endif %}
+</div>

@@ -12,28 +12,13 @@
       <a href="{% url 'core:telegram_access_list' %}" class="btn btn-sm btn-outline-secondary">Zurück</a>
     </div>
     <div class="card-body">
-      <form method="post" class="row g-3">
+      <form method="post" class="row g-4 app-form">
         {% csrf_token %}
-        {% if form.non_field_errors %}
-          <div class="col-12 alert alert-danger">{{ form.non_field_errors }}</div>
-        {% endif %}
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.label.id_for_label }}">Name</label>
-          {{ form.label }}
-          {{ form.label.errors }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.role.id_for_label }}">Rolle</label>
-          {{ form.role }}
-          {{ form.role.errors }}
-        </div>
-        <div class="col-12">
-          <div class="form-check">
-            {{ form.is_active }}
-            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Zugang freigeben</label>
-          </div>
-        </div>
-        <div class="col-12 d-flex justify-content-end gap-2">
+        <div class="col-12">{% include "includes/form_errors.html" %}</div>
+        {% include "includes/form_field.html" with field=form.label %}
+        {% include "includes/form_field.html" with field=form.role %}
+        {% include "includes/form_field.html" with field=form.is_active wide=True %}
+        <div class="col-12 form-actions">
           <a href="{% url 'core:telegram_access_list' %}" class="btn btn-outline-secondary">Abbrechen</a>
           <button type="submit" class="btn btn-primary">Speichern</button>
         </div>

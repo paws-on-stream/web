@@ -88,16 +88,16 @@
           {% if message.status == "pending" %}
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}
-            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Freigeben</button>
           </form>
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}
-            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Ablehnen</button>
           </form>
           {% endif %}
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}
-            <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Delete</button>
+            <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">Löschen</button>
           </form>
         </div>
       </div>

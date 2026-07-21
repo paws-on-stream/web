@@ -28,6 +28,131 @@
   border-left-color: var(--bs-danger);
 }
 
+// Einheitliche, gut lesbare Anwendungsformulare
+.app-form .form-label,
+.filter-form .form-label,
+.bulk-action-bar label {
+  margin-bottom: .45rem;
+  color: var(--bs-body-color);
+  font-weight: 650;
+}
+
+.app-form .form-control,
+.app-form .form-select {
+  min-height: 2.75rem;
+  padding: .65rem .8rem;
+  border-color: color-mix(in srgb, var(--bs-body-color) 28%, transparent);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+.app-form textarea.form-control {
+  min-height: 8rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.app-form .form-control:focus,
+.app-form .form-select:focus,
+.filter-form .form-control:focus,
+.filter-form .form-select:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 .22rem color-mix(in srgb, var(--bs-primary) 24%, transparent);
+}
+
+.app-form .form-text {
+  margin-top: .45rem;
+  color: var(--bs-secondary-color);
+  font-size: .875rem;
+  line-height: 1.4;
+}
+
+.app-form .invalid-feedback {
+  margin-top: .45rem;
+  font-weight: 600;
+}
+
+.required-indicator {
+  margin-left: .2rem;
+  color: var(--bs-danger);
+}
+
+.form-check-panel {
+  display: flex;
+  gap: .8rem;
+  align-items: flex-start;
+  height: 100%;
+  min-height: 5.25rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--bs-body-color) 22%, transparent);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+}
+
+.form-check-panel .form-check-input {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 1.25rem;
+  margin: .15rem 0 0;
+}
+
+.form-check-panel .form-check-label {
+  color: var(--bs-body-color);
+  font-weight: 650;
+}
+
+.filter-form .form-label {
+  margin-bottom: .25rem;
+  font-size: .8rem;
+}
+
+.filter-form .form-control,
+.filter-form .form-select {
+  border-color: color-mix(in srgb, var(--bs-body-color) 25%, transparent);
+}
+
+.bulk-action-bar {
+  display: flex;
+  gap: .65rem;
+  align-items: center;
+  padding: .75rem 1rem;
+  border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+  background: var(--bs-tertiary-bg);
+}
+
+.bulk-action-bar label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: .875rem;
+}
+
+.bulk-action-bar .form-select {
+  width: auto;
+  min-width: 14rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 575.98px) {
+  .bulk-action-bar,
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bulk-action-bar .form-select,
+  .bulk-action-bar .btn,
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
 .web-display-page {
   margin: 0;
   min-height: 100vh;

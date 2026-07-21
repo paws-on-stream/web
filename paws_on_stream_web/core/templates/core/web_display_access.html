@@ -17,7 +17,9 @@
   {% if generated_url %}
     <div class="alert alert-warning">
       <strong>Jetzt kopieren – der Link wird nur einmal angezeigt.</strong>
-      <input class="form-control mt-2 font-monospace" value="{{ generated_url }}" readonly>
+      <label class="form-label fw-semibold mt-2" for="generated-monitor-url">Einmaliger Monitoring-Link</label>
+      <input id="generated-monitor-url" class="form-control font-monospace" value="{{ generated_url }}" readonly aria-describedby="generated-monitor-url-help">
+      <div class="form-text" id="generated-monitor-url-help">Der Link enthält das Zugangstoken und muss vertraulich behandelt werden.</div>
     </div>
   {% endif %}
 
@@ -32,7 +34,7 @@
         {% endif %}
       </p>
       <p class="text-muted">Eine Rotation widerruft alle zuvor geöffneten öffentlichen Monitor-Sitzungen.</p>
-      <div class="d-flex gap-2">
+      <div class="form-actions justify-content-start">
         <form method="post">
           {% csrf_token %}
           <button class="btn btn-primary" name="action" value="rotate" type="submit">

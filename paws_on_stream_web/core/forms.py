@@ -1,28 +1,35 @@
 from django import forms
 
-from core.models import Settings, TelegramAccess
+from core.form_utils import ReadableFormMixin
+from core.models import DisplayDevice, Settings, TelegramAccess
 from core.themes import available_theme_choices
 
 
-class TelegramAccessForm(forms.ModelForm):
+class TelegramAccessForm(ReadableFormMixin, forms.ModelForm):
     ROLE_STAFF = "staff"
     ROLE_ADMIN = "admin"
     ROLE_CHOICES = ((ROLE_STAFF, "Staff"), (ROLE_ADMIN, "Admin"))
 
-    role = forms.ChoiceField(choices=ROLE_CHOICES)
+    role = forms.ChoiceField(
+        choices=ROLE_CHOICES,
+        label="Rolle",
+        help_text="Admins dürfen zusätzlich Zugänge und Themes verwalten.",
+    )
 
     class Meta:
         model = TelegramAccess
         fields = ["label", "is_active"]
+        labels = {"label": "Name", "is_active": "Zugang freigeben"}
+        help_texts = {
+            "label": "Anzeigename für die interne Verwaltung.",
+            "is_active": "Nur freigegebene Konten können sich am Dashboard anmelden.",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["role"].initial = (
             self.ROLE_ADMIN if self.instance.is_admin else self.ROLE_STAFF
         )
-        self.fields["label"].widget.attrs["class"] = "form-control"
-        self.fields["role"].widget.attrs["class"] = "form-select"
-        self.fields["is_active"].widget.attrs["class"] = "form-check-input"
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -32,7 +39,7 @@ class TelegramAccessForm(forms.ModelForm):
         return instance
 
 
-class SettingsForm(forms.ModelForm):
+class SettingsForm(ReadableFormMixin, forms.ModelForm):
     overlay_theme = forms.ChoiceField()
 
     class Meta:
@@ -56,10 +63,30 @@ class SettingsForm(forms.ModelForm):
             "require_event_active",
         ]
         widgets = {
-            "reg_api_key": forms.PasswordInput(render_value=True),
+            "reg_api_key": forms.PasswordInput(
+                render_value=True, attrs={"autocomplete": "off"}
+            ),
             "event_api_jsonq_filter": forms.Textarea(
                 attrs={"rows": 4, "spellcheck": "false"}
             ),
+        }
+        labels = {
+            "rate_limit_per_minute": "Nachrichtenlimit pro Minute",
+            "max_message_length": "Maximale Nachrichtenlänge",
+            "bot_status": "Bot-Status",
+            "overlay_theme": "Display-Theme",
+            "overlay_font_size": "Schriftgröße",
+            "auto_approve": "Nachrichten automatisch freigeben",
+            "spam_threshold": "Spam-Grenzwert",
+            "display_duration_sec": "Anzeigedauer in Sekunden",
+            "display_mode": "Anzeigemodus",
+            "scroll_speed_px": "Crawling-Geschwindigkeit",
+            "reg_api_url": "URL des Registrierungssystems",
+            "reg_api_key": "API-Schlüssel des Registrierungssystems",
+            "event_api_url": "URL der Event-API",
+            "event_api_jsonq_filter": "JSONQ-/jq-Filter",
+            "status_check_interval": "Prüfintervall in Sekunden",
+            "require_event_active": "Aktives Event voraussetzen",
         }
         help_texts = {
             "rate_limit_per_minute": "Maximale Nachrichten pro Teilnehmer und Minute.",
@@ -92,17 +119,6 @@ class SettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["overlay_theme"].choices = available_theme_choices()
-        for field in self.fields.values():
-            if isinstance(field.widget, forms.CheckboxInput):
-                field.widget.attrs["class"] = "form-check-input"
-            else:
-                field.widget.attrs["class"] = "form-control"
-        for name in (
-            "bot_status",
-            "display_mode",
-            "overlay_theme",
-        ):
-            self.fields[name].widget.attrs["class"] = "form-select"
 
     def clean_event_api_jsonq_filter(self):
         value = self.cleaned_data["event_api_jsonq_filter"].strip()
@@ -113,11 +129,26 @@ class SettingsForm(forms.ModelForm):
         return value
 
 
-class ThemeUploadForm(forms.Form):
+class ThemeUploadForm(ReadableFormMixin, forms.Form):
     package = forms.FileField(
         label="Theme-Paket",
         help_text="ZIP mit theme.json (Schema v3) und allen deklarierten PNG-Assets.",
-        widget=forms.ClearableFileInput(
-            attrs={"class": "form-control", "accept": ".zip,application/zip"}
-        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".zip,application/zip"}),
     )
+
+
+class DisplayDeviceForm(ReadableFormMixin, forms.ModelForm):
+    class Meta:
+        model = DisplayDevice
+        fields = ["device_id", "hostname", "location", "is_active"]
+        labels = {
+            "device_id": "Geräte-ID",
+            "hostname": "Hostname",
+            "location": "Standort",
+            "is_active": "Display aktiv",
+        }
+        help_texts = {
+            "device_id": "Eindeutige Kennung des Raspberry Pi, zum Beispiel pi-01.",
+            "location": "Optionale Beschreibung des Aufstellorts.",
+            "is_active": "Inaktive Displays erhalten keine neuen Nachrichten.",
+        }

@@ -1,62 +1,62 @@
 {% extends "base.html" %}
 {% load django_tables2 %}
 
-{% block title %}Participants — Paws on Stream{% endblock %}
+{% block title %}Teilnehmer — Paws on Stream{% endblock %}
 
 {% block content %}
   <div class="row mb-3 align-items-center">
     <div class="col">
-      <h1 class="mb-0">Participants</h1>
-      <small class="text-muted">Manage event participants</small>
+      <h1 class="mb-0">Teilnehmer</h1>
+      <small class="text-muted">Teilnehmer und Check-in-Status verwalten</small>
     </div>
     <div class="col-auto">
       <a href="{% url 'participants:participant_list' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-clockwise"></i> Reload
+        <i class="bi bi-arrow-clockwise"></i> Neu laden
       </a>
     </div>
   </div>
 
   <div class="card mb-3">
     <div class="card-body">
-      <form method="get" class="row g-2 align-items-end">
+      <form method="get" class="row g-2 align-items-end filter-form">
         <div class="col-md-4">
-          <label for="q" class="form-label small text-muted mb-1">Search</label>
+          <label for="q" class="form-label">Suche</label>
           <input
             id="q"
             name="q"
             type="text"
             class="form-control form-control-sm"
-            placeholder="Name, Telegram ID, Reg ID"
+            placeholder="Name, Telegram-ID oder Registrierungs-ID"
             value="{{ filters.q }}"
           >
         </div>
         <div class="col-md-2">
-          <label for="checked_in" class="form-label small text-muted mb-1">Checked in</label>
+          <label for="checked_in" class="form-label">Eingecheckt</label>
           <select id="checked_in" name="checked_in" class="form-select form-select-sm">
-            <option value="all" {% if filters.checked_in == "all" %}selected{% endif %}>All</option>
-            <option value="yes" {% if filters.checked_in == "yes" %}selected{% endif %}>Yes</option>
-            <option value="no" {% if filters.checked_in == "no" %}selected{% endif %}>No</option>
+            <option value="all" {% if filters.checked_in == "all" %}selected{% endif %}>Alle</option>
+            <option value="yes" {% if filters.checked_in == "yes" %}selected{% endif %}>Ja</option>
+            <option value="no" {% if filters.checked_in == "no" %}selected{% endif %}>Nein</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label for="banned" class="form-label small text-muted mb-1">Banned</label>
+          <label for="banned" class="form-label">Gesperrt</label>
           <select id="banned" name="banned" class="form-select form-select-sm">
-            <option value="all" {% if filters.banned == "all" %}selected{% endif %}>All</option>
-            <option value="yes" {% if filters.banned == "yes" %}selected{% endif %}>Yes</option>
-            <option value="no" {% if filters.banned == "no" %}selected{% endif %}>No</option>
+            <option value="all" {% if filters.banned == "all" %}selected{% endif %}>Alle</option>
+            <option value="yes" {% if filters.banned == "yes" %}selected{% endif %}>Ja</option>
+            <option value="no" {% if filters.banned == "no" %}selected{% endif %}>Nein</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label for="muted" class="form-label small text-muted mb-1">Muted</label>
+          <label for="muted" class="form-label">Stummgeschaltet</label>
           <select id="muted" name="muted" class="form-select form-select-sm">
-            <option value="all" {% if filters.muted == "all" %}selected{% endif %}>All</option>
-            <option value="yes" {% if filters.muted == "yes" %}selected{% endif %}>Yes</option>
-            <option value="no" {% if filters.muted == "no" %}selected{% endif %}>No</option>
+            <option value="all" {% if filters.muted == "all" %}selected{% endif %}>Alle</option>
+            <option value="yes" {% if filters.muted == "yes" %}selected{% endif %}>Ja</option>
+            <option value="no" {% if filters.muted == "no" %}selected{% endif %}>Nein</option>
           </select>
         </div>
         <div class="col-md-2 d-flex gap-2">
-          <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
-          <a href="{% url 'participants:participant_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+          <button type="submit" class="btn btn-sm btn-primary w-100">Filtern</button>
+          <a href="{% url 'participants:participant_list' %}" class="btn btn-sm btn-outline-secondary">Zurücksetzen</a>
         </div>
       </form>
     </div>
@@ -66,15 +66,15 @@
     <div class="card-body p-0">
       <form method="post">
         {% csrf_token %}
-        <div class="px-3 py-2 d-flex gap-2 align-items-center border-bottom bg-body-tertiary">
-          <span class="text-muted small">Bulk Actions:</span>
-          <select name="action" class="form-select form-select-sm" style="min-width: 160px;">
-            <option value="">— Choose action —</option>
-            <option value="ban">🚫 Ban Selected</option>
-            <option value="unban">✅ Unban Selected</option>
-            <option value="delete">🗑️ Delete Selected</option>
+        <div class="bulk-action-bar">
+          <label for="participant-bulk-action">Mehrfachaktion</label>
+          <select id="participant-bulk-action" name="action" class="form-select form-select-sm">
+            <option value="">— Aktion auswählen —</option>
+            <option value="ban">Ausgewählte sperren</option>
+            <option value="unban">Ausgewählte entsperren</option>
+            <option value="delete">Ausgewählte löschen</option>
           </select>
-          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+          <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
         </div>
         {% render_table table %}
       </form>

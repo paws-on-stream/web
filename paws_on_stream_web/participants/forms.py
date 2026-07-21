@@ -1,9 +1,10 @@
+from core.form_utils import ReadableFormMixin
 from django import forms
 
 from participants.models import Participant
 
 
-class ParticipantForm(forms.ModelForm):
+class ParticipantForm(ReadableFormMixin, forms.ModelForm):
     class Meta:
         model = Participant
         fields = [
@@ -14,10 +15,27 @@ class ParticipantForm(forms.ModelForm):
             "banned",
             "muted_until",
         ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field_name, field in self.fields.items():
-            if field_name not in {"banned"}:
-                field.widget.attrs.update({"class": "form-control"})
-        self.fields["checked_in_override"].widget.attrs["class"] = "form-select"
+        labels = {
+            "telegram_id": "Telegram-ID",
+            "reg_id": "Registrierungs-ID",
+            "display_name": "Anzeigename",
+            "checked_in_override": "Check-in dauerhaft überschreiben",
+            "banned": "Teilnehmer sperren",
+            "muted_until": "Stummgeschaltet bis",
+        }
+        help_texts = {
+            "telegram_id": "Numerische Telegram-ID des Teilnehmers.",
+            "reg_id": "Optionale ID aus dem Registrierungssystem.",
+            "checked_in_override": (
+                "Automatisch übernimmt den Status des Registrierungssystems."
+            ),
+            "banned": "Gesperrte Teilnehmer können keine Nachrichten einsenden.",
+            "muted_until": (
+                "Leer lassen, wenn keine zeitliche Stummschaltung aktiv ist."
+            ),
+        }
+        widgets = {
+            "muted_until": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"}
+            )
+        }

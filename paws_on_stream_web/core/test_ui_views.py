@@ -21,7 +21,7 @@ class DisplayUIViewsTest(TestCase):
         SettingsFactory()
         response = self.client.get("/core/settings/edit/")
         assert response.status_code == 200
-        assert "Edit Settings" in response.content.decode()
+        assert "Einstellungen bearbeiten" in response.content.decode()
 
     def test_settings_edit_uses_readable_sections_and_display_mode_select(self):
         SettingsFactory()
@@ -33,6 +33,17 @@ class DisplayUIViewsTest(TestCase):
         assert '<select name="display_mode"' in content
         assert ">Chat</option>" in content
         assert ">Crawling</option>" in content
+        assert "app-form" in content
+        assert "Nachrichtenlimit pro Minute" in content
+
+    def test_device_edit_uses_explicit_labels_instead_of_floating_labels(self):
+        device = DisplayDeviceFactory()
+        response = self.client.get(f"/core/devices/{device.pk}/edit/")
+        content = response.content.decode()
+        assert response.status_code == 200
+        assert "form-floating" not in content
+        assert "Geräte-ID" in content
+        assert "form-check-panel" in content
 
     def test_settings_edit_persists_event_api_and_jq_filter(self):
         settings = SettingsFactory()

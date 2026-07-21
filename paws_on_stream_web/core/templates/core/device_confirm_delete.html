@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Delete Device — Paws on Stream{% endblock %}
+{% block title %}Display löschen — Paws on Stream{% endblock %}
 
 {% block content %}
   <div class="card">
     <div class="card-body text-center py-5">
-      <h4 class="mb-3">Delete Device</h4>
-      <p class="text-muted mb-4">Are you sure you want to delete <strong>"{{ object.hostname }}"</strong> ({{ object.device_id }})?</p>
+      <h1 class="h4 mb-3">Display löschen</h1>
+      <p class="text-muted mb-4">Soll <strong>„{{ object.hostname }}“</strong> ({{ object.device_id }}) wirklich dauerhaft gelöscht werden?</p>
       <form method="post">
         {% csrf_token %}
-        <a href="{% url 'core:device_detail' object.pk %}" class="btn btn-outline-secondary me-2">Cancel</a>
-        <button type="submit" class="btn btn-danger">Delete</button>
+        <a href="{% url 'core:device_detail' object.pk %}" class="btn btn-outline-secondary me-2">Abbrechen</a>
+        <button type="submit" class="btn btn-danger">Display löschen</button>
       </form>
     </div>
   </div>

@@ -32,7 +32,7 @@
       <form method="post" class="d-inline" action="{% url detail_delete_url object.pk %}" onsubmit="return confirm('Wirklich löschen?')">
         {% csrf_token %}
         <button type="submit" class="btn btn-sm btn-outline-danger">
-          <i class="bi bi-trash"></i> Delete
+          <i class="bi bi-trash"></i> Löschen
         </button>
       </form>
     {% endif %}

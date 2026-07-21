@@ -13,7 +13,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.auth import AdminRequiredMixin, StaffRequiredMixin, StrictStaffRequiredMixin
-from core.forms import SettingsForm, TelegramAccessForm, ThemeUploadForm
+from core.forms import (
+    DisplayDeviceForm,
+    SettingsForm,
+    TelegramAccessForm,
+    ThemeUploadForm,
+)
 from core.models import (
     DisplayDevice,
     DisplayLog,
@@ -436,7 +441,7 @@ class DisplayLogListView(StaffRequiredMixin, SingleTableView):
 
 class DisplayDeviceUpdateView(StaffRequiredMixin, UpdateView):
     model = DisplayDevice
-    fields = ["device_id", "hostname", "location", "is_active"]
+    form_class = DisplayDeviceForm
     template_name = "core/device_form.html"
 
     def get_success_url(self):

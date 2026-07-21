@@ -12,13 +12,13 @@
     <div class="card-header"><strong>Theme-Paket importieren</strong></div>
     <div class="card-body">
       <p class="text-body-secondary">Das ZIP muss eine <code>theme.json</code> in Schema v3 und alle darin deklarierten PNG-Dateien direkt im Wurzelverzeichnis enthalten.</p>
-      <form method="post" enctype="multipart/form-data" class="row g-3 align-items-end">
+      <form method="post" enctype="multipart/form-data" class="row g-3 align-items-end app-form compact-form">
         {% csrf_token %}
         <input type="hidden" name="action" value="upload">
         <div class="col-md-9">
           <label class="form-label" for="{{ upload_form.package.id_for_label }}">{{ upload_form.package.label }}</label>
           {{ upload_form.package }}
-          {% for error in upload_form.package.errors %}<div class="text-danger mt-1">{{ error }}</div>{% endfor %}
+          {% for error in upload_form.package.errors %}<div class="invalid-feedback d-block" id="{{ upload_form.package.id_for_label }}_error">{{ error }}</div>{% endfor %}
           <div class="form-text">Maximal 10 MB komprimiert; sichere Pfade, PNG-Inhalt, Maße, Alpha und SHA-256 werden geprüft.</div>
         </div>
         <div class="col-md-3"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-upload"></i> Importieren</button></div>

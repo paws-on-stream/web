@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Delete Event — Paws on Stream{% endblock %}
+{% block title %}Event löschen — Paws on Stream{% endblock %}
 
 {% block content %}
   <div class="card">
     <div class="card-body text-center py-5">
-      <h4 class="mb-3">Delete Event</h4>
-      <p class="text-muted mb-4">Are you sure you want to delete <strong>"{{ object.name }}"</strong>?</p>
+      <h1 class="h4 mb-3">Event löschen</h1>
+      <p class="text-muted mb-4">Soll das Event <strong>„{{ object.name }}“</strong> wirklich dauerhaft gelöscht werden?</p>
       <form method="post">
         {% csrf_token %}
-        <a href="{% url 'streaming:event_detail' object.pk %}" class="btn btn-outline-secondary me-2">Cancel</a>
-        <button type="submit" class="btn btn-danger">Delete</button>
+        <a href="{% url 'streaming:event_detail' object.pk %}" class="btn btn-outline-secondary me-2">Abbrechen</a>
+        <button type="submit" class="btn btn-danger">Event löschen</button>
       </form>
     </div>
   </div>

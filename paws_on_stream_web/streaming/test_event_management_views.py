@@ -17,7 +17,7 @@ class EventManagementViewTest(TestCase):
     def test_event_create_page_renders(self):
         response = self.client.get("/streaming/events/new/")
         assert response.status_code == 200
-        assert "New Event" in response.content.decode()
+        assert "Event anlegen" in response.content.decode()
 
     def test_event_create_flow(self):
         starts_at = timezone.now() + timedelta(hours=1)

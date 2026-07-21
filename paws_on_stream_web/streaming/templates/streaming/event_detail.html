@@ -99,16 +99,16 @@
           <form method="post" action="{% url 'streaming:event_detail' event.pk %}" class="d-inline">
             {% csrf_token %}
             <button type="submit" name="action" value="activate" class="btn btn-success btn-sm" {% if event.is_active %}disabled{% endif %}>
-              Activate
+              Aktivieren
             </button>
           </form>
           <form method="post" action="{% url 'streaming:event_detail' event.pk %}" class="d-inline">
             {% csrf_token %}
             <button type="submit" name="action" value="deactivate" class="btn btn-warning btn-sm" {% if not event.is_active %}disabled{% endif %}>
-              Deactivate
+              Deaktivieren
             </button>
           </form>
-          <a href="{% url 'streaming:event_delete' event.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+          <a href="{% url 'streaming:event_delete' event.pk %}" class="btn btn-outline-danger btn-sm">Löschen</a>
         </div>
       </div>
     </div>

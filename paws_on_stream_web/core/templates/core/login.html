@@ -18,18 +18,18 @@
           <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        <form method="post" action="{% url 'login' %}">
+        <form method="post" action="{% url 'login' %}" class="app-form">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ next }}">
           <div class="mb-3">
-            <label class="form-label" for="{{ form.username.id_for_label }}">Benutzername</label>
-            <input class="form-control" type="text" name="username" autofocus autocomplete="username"
-                   required id="{{ form.username.id_for_label }}" value="{{ form.username.value|default:'' }}">
+            <label class="form-label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+            {{ form.username }}
+            {% if form.username.errors %}<div class="invalid-feedback d-block" id="{{ form.username.id_for_label }}_error">{{ form.username.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-3">
-            <label class="form-label" for="{{ form.password.id_for_label }}">Passwort</label>
-            <input class="form-control" type="password" name="password" autocomplete="current-password"
-                   required id="{{ form.password.id_for_label }}">
+            <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+            {{ form.password }}
+            {% if form.password.errors %}<div class="invalid-feedback d-block" id="{{ form.password.id_for_label }}_error">{{ form.password.errors.0 }}</div>{% endif %}
           </div>
           <button class="btn btn-primary w-100" type="submit">Mit Django anmelden</button>
         </form>

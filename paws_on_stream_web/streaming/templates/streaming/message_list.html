@@ -1,59 +1,59 @@
 {% extends "base.html" %}
 {% load django_tables2 %}
 
-{% block title %}Messages — Paws on Stream{% endblock %}
+{% block title %}Nachrichten — Paws on Stream{% endblock %}
 
 {% block content %}
   <div class="row mb-3 align-items-center">
     <div class="col">
-      <h1 class="mb-0">Messages</h1>
-      <small class="text-muted">Moderate incoming messages</small>
+      <h1 class="mb-0">Nachrichten</h1>
+      <small class="text-muted">Eingehende Nachrichten moderieren</small>
     </div>
     <div class="col-auto">
       <a href="{% url 'streaming:message_list' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-clockwise"></i> Reload
+        <i class="bi bi-arrow-clockwise"></i> Neu laden
       </a>
     </div>
   </div>
 
   <div class="card mb-3">
     <div class="card-body">
-      <form method="get" class="row g-2 align-items-end">
+      <form method="get" class="row g-2 align-items-end filter-form">
         <div class="col-md-6">
-          <label for="q" class="form-label small text-muted mb-1">Search</label>
+          <label for="q" class="form-label">Suche</label>
           <input
             id="q"
             name="q"
             type="text"
             class="form-control form-control-sm"
-            placeholder="Content, participant name, Telegram ID"
+            placeholder="Inhalt, Teilnehmername oder Telegram-ID"
             value="{{ filters.q }}"
           >
         </div>
         <div class="col-md-2">
-          <label for="status" class="form-label small text-muted mb-1">Status</label>
+          <label for="status" class="form-label">Status</label>
           <select id="status" name="status" class="form-select form-select-sm">
-            <option value="all" {% if filters.status == "all" %}selected{% endif %}>All</option>
-            <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
-            <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>Approved</option>
-            <option value="rejected" {% if filters.status == "rejected" %}selected{% endif %}>Rejected</option>
-            <option value="shown" {% if filters.status == "shown" %}selected{% endif %}>Shown at least once</option>
-            <option value="not_shown" {% if filters.status == "not_shown" %}selected{% endif %}>Approved, not shown</option>
+            <option value="all" {% if filters.status == "all" %}selected{% endif %}>Alle</option>
+            <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Ausstehend</option>
+            <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>Freigegeben</option>
+            <option value="rejected" {% if filters.status == "rejected" %}selected{% endif %}>Abgelehnt</option>
+            <option value="shown" {% if filters.status == "shown" %}selected{% endif %}>Mindestens einmal gezeigt</option>
+            <option value="not_shown" {% if filters.status == "not_shown" %}selected{% endif %}>Freigegeben, nicht gezeigt</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label for="media_type" class="form-label small text-muted mb-1">Media</label>
+          <label for="media_type" class="form-label">Medientyp</label>
           <select id="media_type" name="media_type" class="form-select form-select-sm">
-            <option value="all" {% if filters.media_type == "all" %}selected{% endif %}>All</option>
+            <option value="all" {% if filters.media_type == "all" %}selected{% endif %}>Alle</option>
             <option value="text" {% if filters.media_type == "text" %}selected{% endif %}>Text</option>
-            <option value="photo" {% if filters.media_type == "photo" %}selected{% endif %}>Photo</option>
+            <option value="photo" {% if filters.media_type == "photo" %}selected{% endif %}>Foto</option>
             <option value="gif" {% if filters.media_type == "gif" %}selected{% endif %}>GIF</option>
             <option value="sticker" {% if filters.media_type == "sticker" %}selected{% endif %}>Sticker</option>
           </select>
         </div>
         <div class="col-md-2 d-flex gap-2">
-          <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
-          <a href="{% url 'streaming:message_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+          <button type="submit" class="btn btn-sm btn-primary w-100">Filtern</button>
+          <a href="{% url 'streaming:message_list' %}" class="btn btn-sm btn-outline-secondary">Zurücksetzen</a>
         </div>
       </form>
     </div>
@@ -63,15 +63,15 @@
     <div class="card-body p-0">
       <form method="post">
         {% csrf_token %}
-        <div class="px-3 py-2 d-flex gap-2 align-items-center border-bottom bg-body-tertiary">
-          <span class="text-muted small">Bulk Actions:</span>
-          <select name="action" class="form-select form-select-sm" style="min-width: 160px;">
-            <option value="">— Choose action —</option>
-            <option value="approve">Approve Selected</option>
-            <option value="reject">Reject Selected</option>
-            <option value="delete">Delete Selected</option>
+        <div class="bulk-action-bar">
+          <label for="message-bulk-action">Mehrfachaktion</label>
+          <select id="message-bulk-action" name="action" class="form-select form-select-sm">
+            <option value="">— Aktion auswählen —</option>
+            <option value="approve">Ausgewählte freigeben</option>
+            <option value="reject">Ausgewählte ablehnen</option>
+            <option value="delete">Ausgewählte löschen</option>
           </select>
-          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+          <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
         </div>
         {% render_table table %}
       </form>

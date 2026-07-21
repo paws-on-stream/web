@@ -7,14 +7,14 @@
   <div class="row mb-3 align-items-center">
     <div class="col">
       <h1 class="mb-0">Events</h1>
-      <small class="text-muted">Manage active convention events</small>
+      <small class="text-muted">Convention-Events und Displayverhalten verwalten</small>
     </div>
     <div class="col-auto d-flex gap-2">
       <a href="{% url 'streaming:event_create' %}" class="btn btn-sm btn-primary">
-        <i class="bi bi-plus-lg"></i> New Event
+        <i class="bi bi-plus-lg"></i> Event anlegen
       </a>
       <a href="{% url 'streaming:event_list' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-clockwise"></i> Reload
+        <i class="bi bi-arrow-clockwise"></i> Neu laden
       </a>
     </div>
   </div>
@@ -23,15 +23,15 @@
     <div class="card-body p-0">
       <form method="post">
         {% csrf_token %}
-        <div class="px-3 py-2 d-flex gap-2 align-items-center border-bottom bg-body-tertiary">
-          <span class="text-muted small">Bulk Actions:</span>
-          <select name="action" class="form-select form-select-sm" style="min-width: 160px;">
-            <option value="">— Choose action —</option>
-            <option value="activate">Activate Selected</option>
-            <option value="deactivate">Deactivate Selected</option>
-            <option value="delete">Delete Selected</option>
+        <div class="bulk-action-bar">
+          <label for="event-bulk-action">Mehrfachaktion</label>
+          <select id="event-bulk-action" name="action" class="form-select form-select-sm">
+            <option value="">— Aktion auswählen —</option>
+            <option value="activate">Ausgewählte aktivieren</option>
+            <option value="deactivate">Ausgewählte deaktivieren</option>
+            <option value="delete">Ausgewählte löschen</option>
           </select>
-          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+          <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
         </div>
         {% render_table table %}
       </form>

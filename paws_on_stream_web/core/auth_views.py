@@ -4,13 +4,13 @@ from authlib.integrations.base_client import OAuthError
 from authlib.integrations.django_client import OAuth
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
-from django.contrib.auth.forms import AuthenticationForm
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
+from core.form_utils import ReadableAuthenticationForm
 from core.models import TelegramAccess
 
 oauth = OAuth()
@@ -37,7 +37,7 @@ def auth_login(request):
     if request.user.is_authenticated:
         return redirect(_safe_next(request))
     next_url = _safe_next(request)
-    form = AuthenticationForm(request, data=request.POST or None)
+    form = ReadableAuthenticationForm(request, data=request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.get_user()
         if not user.is_staff:

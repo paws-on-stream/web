@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Settings — Paws on Stream{% endblock %}
+{% block title %}Einstellungen bearbeiten — Paws on Stream{% endblock %}
 
 {% block content %}
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Edit Settings</h5>
-      <a href="{% url 'core:settings' %}" class="btn btn-sm btn-outline-secondary">← Back</a>
+      <div><h1 class="h5 mb-1">Einstellungen bearbeiten</h1><p class="text-body-secondary mb-0 small">Bot, Moderation, Displays und externe Schnittstellen konfigurieren.</p></div>
+      <a href="{% url 'core:settings' %}" class="btn btn-sm btn-outline-secondary">Zurück</a>
     </div>
     <div class="card-body">
-      <form method="post">
+      <form method="post" class="app-form">
         {% csrf_token %}
-        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+        {% include "includes/form_errors.html" %}
 
         <h6 class="border-bottom pb-2 mb-3">Bot und Moderation</h6>
         <div class="row g-3 mb-4">
@@ -44,9 +44,9 @@
           {% include "core/inc/settings_field.html" with field=form.event_api_url wide=True %}
           {% include "core/inc/settings_field.html" with field=form.event_api_jsonq_filter wide=True %}
         </div>
-        <div class="col-12 d-flex gap-2 justify-content-end mt-3">
-          <a href="{% url 'core:settings' %}" class="btn btn-outline-secondary">Cancel</a>
-          <button type="submit" class="btn btn-primary">Save</button>
+        <div class="col-12 form-actions mt-3">
+          <a href="{% url 'core:settings' %}" class="btn btn-outline-secondary">Abbrechen</a>
+          <button type="submit" class="btn btn-primary">Speichern</button>
         </div>
       </form>
     </div>
