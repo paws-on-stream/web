@@ -52,6 +52,11 @@ class ApiTokenMiddleware:
 
     @staticmethod
     def _bot_path_allowed(request):
+        if (
+            request.method == "GET"
+            and request.path == "/api/v1/settings/effective-display-mode/"
+        ):
+            return True
         prefixes = (
             "/api/v1/message/",
             "/api/v1/media/upload/",

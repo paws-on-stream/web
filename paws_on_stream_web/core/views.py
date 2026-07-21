@@ -41,9 +41,37 @@ class SettingsViewSet(viewsets.GenericViewSet):
     serializer_class = SettingsSerializer
 
     def get_throttles(self):
-        if self.action == "retrieve":
+        if self.action in {"retrieve", "effective_display_mode"}:
             return []
         return super().get_throttles()
+
+    @action(detail=False, methods=["get"], url_path="effective-display-mode")
+    def effective_display_mode(self, request):  # noqa: ARG002
+        from streaming.models import Event
+
+        app_settings = Settings.get_settings()
+        now = datetime.now(tz=UTC)
+        active_event = Event.objects.filter(
+            is_active=True,
+            allow_messages=True,
+            starts_at__lte=now,
+            ends_at__gte=now,
+        ).first()
+        if active_event and active_event.display_mode:
+            return Response(
+                {
+                    "display_mode": active_event.display_mode,
+                    "source": "event",
+                    "event_id": active_event.id,
+                }
+            )
+        return Response(
+            {
+                "display_mode": app_settings.display_mode,
+                "source": "global",
+                "event_id": active_event.id if active_event else None,
+            }
+        )
 
     def retrieve(self, request, pk=None):  # noqa: ARG002
         settings = Settings.get_settings()
