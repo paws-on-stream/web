@@ -8,12 +8,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import timedelta
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from core.models import Settings
 from core.outbound import UnsafeOutboundUrlError, validate_public_https_url
-from django.db import close_old_connections
+from django.db import close_old_connections, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -24,6 +24,10 @@ LOGGER = logging.getLogger(__name__)
 
 class RegSyncError(Exception):
     """Raised when syncing participant status from registration API fails."""
+
+
+class RegParticipantNotFound(RegSyncError):
+    """Raised when the registration system does not know a Telegram ID."""
 
 
 @dataclass(frozen=True)
@@ -60,13 +64,26 @@ def _parse_checked_in(value) -> bool:
 
 
 def parse_reg_status(payload: dict) -> RegStatus:
-    data = _resolve_payload(payload)
-    if "checked_in" not in data and "status" not in data:
-        raise RegSyncError(
-            "Registration API response must contain checked_in or status."
+    if payload.get("error") is True or payload.get("success") is False:
+        raise RegParticipantNotFound(
+            str(
+                payload.get("msg")
+                or "Participant was not found in the registration system."
+            )
         )
 
-    checked_in_source = data["checked_in"] if "checked_in" in data else data["status"]
+    data = _resolve_payload(payload)
+    if "checked_in" not in data and "checkedin" not in data and "status" not in data:
+        raise RegSyncError(
+            "Registration API response must contain checkedin, checked_in or status."
+        )
+
+    if "checkedin" in data:
+        checked_in_source = data["checkedin"]
+    elif "checked_in" in data:
+        checked_in_source = data["checked_in"]
+    else:
+        checked_in_source = data["status"]
     checked_in = _parse_checked_in(checked_in_source)
 
     reg_id = data.get("reg_id")
@@ -75,7 +92,7 @@ def parse_reg_status(payload: dict) -> RegStatus:
     if reg_id is not None and not isinstance(reg_id, int):
         raise RegSyncError("Registration API returned invalid reg_id type.")
 
-    display_name = data.get("display_name")
+    display_name = data.get("display_name", data.get("nickname"))
     if display_name is not None and not isinstance(display_name, str):
         raise RegSyncError("Registration API returned invalid display_name type.")
 
@@ -88,23 +105,36 @@ def fetch_reg_status(telegram_id: int, *, timeout: int = 5) -> RegStatus:
     if not base_url:
         raise RegSyncError("Registration API URL is not configured.")
 
-    query = urlencode({"telegram_id": telegram_id})
-    separator = "&" if "?" in base_url else "?"
-    url = f"{base_url}{separator}{query}"
+    api_key = settings.reg_api_key.strip()
+    if not api_key:
+        raise RegSyncError("Registration API key is not configured.")
+
+    parts = urlsplit(base_url)
+    query_params = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query_params.update({"tg_user_id": str(telegram_id), "key": api_key})
+    url = urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            urlencode(query_params),
+            parts.fragment,
+        )
+    )
     try:
         validate_public_https_url(url)
     except UnsafeOutboundUrlError as exc:
         raise RegSyncError(str(exc)) from exc
 
-    headers = {"Accept": "application/json"}
-    if settings.reg_api_key.strip():
-        headers["X-API-Token"] = settings.reg_api_key.strip()
-
-    request = Request(url=url, headers=headers, method="GET")
+    request = Request(url=url, headers={"Accept": "application/json"}, method="GET")
     try:
         with urlopen(request, timeout=timeout) as response:  # noqa: S310
             raw_bytes = response.read(1024 * 1024 + 1)
     except HTTPError as exc:
+        if exc.code == 404:
+            raise RegParticipantNotFound(
+                "Participant was not found in the registration system."
+            ) from exc
         raise RegSyncError(f"Registration API returned HTTP {exc.code}.") from exc
     except URLError as exc:
         raise RegSyncError("Registration API is unreachable.") from exc
@@ -121,8 +151,7 @@ def fetch_reg_status(telegram_id: int, *, timeout: int = 5) -> RegStatus:
     return parse_reg_status(payload)
 
 
-def sync_participant_status(participant: Participant) -> bool:
-    status = fetch_reg_status(participant.telegram_id)
+def _apply_reg_status(participant: Participant, status: RegStatus) -> bool:
     now = timezone.now()
 
     changed = False
@@ -148,6 +177,50 @@ def sync_participant_status(participant: Participant) -> bool:
     participant.last_status_check = now
     participant.save(update_fields=update_fields)
     return changed
+
+
+def sync_participant_status(participant: Participant) -> bool:
+    status = fetch_reg_status(participant.telegram_id)
+    return _apply_reg_status(participant, status)
+
+
+def sync_participant_by_telegram_id(
+    telegram_id: int,
+) -> tuple[Participant, bool, bool]:
+    """Fetch and upsert a participant by stable Telegram ID.
+
+    Returns ``(participant, changed, created)``. Unknown local participants are
+    only created when the registration system supplies a non-empty display name.
+    """
+
+    status = fetch_reg_status(telegram_id)
+    with transaction.atomic():
+        existing = (
+            Participant.objects.select_for_update()
+            .filter(telegram_id=telegram_id)
+            .first()
+        )
+        if existing is None:
+            display_name = (status.display_name or "").strip()
+            if not display_name:
+                raise RegSyncError(
+                    "Registration API must provide display_name for a new participant."
+                )
+            participant, created = Participant.objects.update_or_create(
+                telegram_id=telegram_id,
+                defaults={
+                    "display_name": display_name,
+                    "checked_in": status.checked_in,
+                    "reg_id": status.reg_id,
+                    "last_status_check": timezone.now(),
+                },
+            )
+            if created:
+                return participant, True, True
+            existing = participant
+
+        changed = _apply_reg_status(existing, status)
+        return existing, changed, False
 
 
 def _sync_participant_by_id(participant_id: int) -> bool:

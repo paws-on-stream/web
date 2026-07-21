@@ -40,7 +40,13 @@ class SettingsForm(forms.ModelForm):
             "overlay_theme": "Name des Themes, das der Display-Client laden soll.",
             "display_duration_sec": "Mindestanzeigedauer einer Nachricht.",
             "scroll_speed_px": "Pixel pro Frame im Crawling-Modus.",
-            "reg_api_url": "Basis-URL des Registrierungssystems.",
+            "reg_api_url": (
+                "Reg-System-Endpunkt ohne tg_user_id und key, zum Beispiel "
+                "https://east.sachsenfurs.de/?page=TelegramInfo"
+            ),
+            "reg_api_key": (
+                "Wird als geschützter Query-Parameter key an das Reg-System gesendet."
+            ),
             "status_check_interval": "Intervall für Statusprüfungen in Sekunden.",
             "event_api_url": "Vollständige URL der externen Event-API.",
             "event_api_jsonq_filter": (

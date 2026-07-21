@@ -147,28 +147,54 @@ class ParticipantRegStatusCheckViewTest(APITestCase):
         cache.clear()
         self.participant = ParticipantFactory(telegram_id=111222333, checked_in=False)
 
-    @patch("participants.views.sync_participant_status")
+    @patch("participants.views.sync_participant_by_telegram_id")
     def test_check_status_success(self, mock_sync):
-        mock_sync.return_value = True
-        response = self.client.get("/api/v1/participants/111222333/check_status/")
+        mock_sync.return_value = (self.participant, True, False)
+        response = self.client.post("/api/v1/participants/111222333/check_status/")
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["changed"] is True
+        assert response.json()["created"] is False
         assert response.json()["participant"]["telegram_id"] == 111222333
 
-    @patch("participants.views.sync_participant_status")
-    def test_check_status_not_found(self, mock_sync):
-        response = self.client.get("/api/v1/participants/999999999/check_status/")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        mock_sync.assert_not_called()
+    @patch("participants.reg_sync.fetch_reg_status")
+    def test_check_status_creates_unknown_local_participant(self, mock_fetch):
+        from participants.reg_sync import parse_reg_status
 
-    @patch("participants.views.sync_participant_status")
+        mock_fetch.return_value = parse_reg_status(
+            {
+                "checked_in": True,
+                "reg_id": 42,
+                "display_name": "Reg Attendee",
+            }
+        )
+        response = self.client.post("/api/v1/participants/999999999/check_status/")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.json()["created"] is True
+        participant = Participant.objects.get(telegram_id=999999999)
+        assert participant.display_name == "Reg Attendee"
+        assert participant.checked_in is True
+
+    @patch("participants.views.sync_participant_by_telegram_id")
     def test_check_status_upstream_error(self, mock_sync):
         from participants.reg_sync import RegSyncError
 
         mock_sync.side_effect = RegSyncError("Registration API is unreachable.")
-        response = self.client.get("/api/v1/participants/111222333/check_status/")
+        response = self.client.post("/api/v1/participants/111222333/check_status/")
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["changed"] is False
         assert response.json()["fallback"] is True
         assert response.json()["participant"]["telegram_id"] == 111222333
         assert "unreachable" in response.json()["detail"]
+
+    def test_check_status_get_is_not_allowed(self):
+        response = self.client.get("/api/v1/participants/111222333/check_status/")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    @patch("participants.views.sync_participant_by_telegram_id")
+    def test_unknown_participant_upstream_failure_is_bad_gateway(self, mock_sync):
+        from participants.reg_sync import RegSyncError
+
+        self.participant.delete()
+        mock_sync.side_effect = RegSyncError("Registration API is unreachable.")
+        response = self.client.post("/api/v1/participants/999999999/check_status/")
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY

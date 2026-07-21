@@ -17,7 +17,11 @@ from rest_framework.views import APIView
 
 from .forms import ParticipantForm
 from .models import Participant
-from .reg_sync import RegSyncError, sync_participant_status
+from .reg_sync import (
+    RegParticipantNotFound,
+    RegSyncError,
+    sync_participant_by_telegram_id,
+)
 from .serializers import ParticipantCreateSerializer, ParticipantSerializer
 from .tables import ParticipantTable
 
@@ -34,20 +38,29 @@ class ParticipantViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=["get"],
+        methods=["post"],
         url_path=r"(?P<telegram_id>\d+)/check_status",
     )
     def check_status(self, request, telegram_id=None):
         participant = Participant.objects.filter(telegram_id=telegram_id).first()
-        if not participant:
-            return Response(
-                {"detail": f"Participant with telegram_id={telegram_id} not found."},
-                status=404,
-            )
-
         try:
-            changed = sync_participant_status(participant)
+            participant, changed, created = sync_participant_by_telegram_id(
+                int(telegram_id)
+            )
+        except RegParticipantNotFound as exc:
+            if participant is None:
+                return Response({"detail": str(exc)}, status=404)
+            return Response(
+                {
+                    "changed": False,
+                    "fallback": True,
+                    "detail": str(exc),
+                    "participant": self.get_serializer(participant).data,
+                }
+            )
         except RegSyncError as exc:
+            if participant is None:
+                return Response({"detail": str(exc)}, status=502)
             logger.warning(
                 "Reg sync failed for telegram_id=%s, falling back to local status: %s",
                 telegram_id,
@@ -64,7 +77,10 @@ class ParticipantViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(participant)
-        return Response({"changed": changed, "participant": serializer.data})
+        return Response(
+            {"changed": changed, "created": created, "participant": serializer.data},
+            status=201 if created else 200,
+        )
 
 
 class ParticipantBanAPIView(APIView):

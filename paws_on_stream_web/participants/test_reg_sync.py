@@ -1,6 +1,7 @@
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from core.factories import SettingsFactory
 from django.core.management import call_command
@@ -9,10 +10,36 @@ from django.test import TestCase
 from django.utils import timezone
 
 from participants.factories import ParticipantFactory
-from participants.reg_sync import RegSyncError, parse_reg_status, sync_due_participants
+from participants.models import Participant
+from participants.reg_sync import (
+    RegParticipantNotFound,
+    RegSyncError,
+    fetch_reg_status,
+    parse_reg_status,
+    sync_due_participants,
+    sync_participant_by_telegram_id,
+)
 
 
 class RegSyncParseTest(TestCase):
+    def test_parse_east_payload(self):
+        status = parse_reg_status(
+            {
+                "success": True,
+                "reg_id": 1,
+                "nickname": "FurryName",
+                "payment_status": "paid",
+                "checkedin": False,
+            }
+        )
+        assert status.checked_in is False
+        assert status.reg_id == 1
+        assert status.display_name == "FurryName"
+
+    def test_parse_east_unknown_participant(self):
+        with self.assertRaisesMessage(RegParticipantNotFound, "invalid telegram id"):
+            parse_reg_status({"error": True, "msg": "invalid telegram id"})
+
     def test_parse_checked_in_payload(self):
         status = parse_reg_status({"checked_in": True, "reg_id": 42})
         assert status.checked_in is True
@@ -26,6 +53,42 @@ class RegSyncParseTest(TestCase):
     def test_parse_raises_on_invalid_payload(self):
         with self.assertRaises(RegSyncError):
             parse_reg_status({"reg_id": 12})
+
+
+class RegSyncRequestTest(TestCase):
+    def setUp(self):
+        SettingsFactory(
+            reg_api_url="https://east.sachsenfurs.de/?page=TelegramInfo",
+            reg_api_key="secret key",
+        )
+
+    @patch("participants.reg_sync.validate_public_https_url")
+    @patch("participants.reg_sync.urlopen")
+    def test_uses_east_query_contract(self, mock_urlopen, _mock_validate_url):
+        response = mock_urlopen.return_value.__enter__.return_value
+        response.read.return_value = (
+            b'{"success":true,"reg_id":1,"nickname":"Paws","checkedin":true}'
+        )
+
+        status = fetch_reg_status(82939949)
+
+        request = mock_urlopen.call_args.args[0]
+        assert request.full_url == (
+            "https://east.sachsenfurs.de/"
+            "?page=TelegramInfo&tg_user_id=82939949&key=secret+key"
+        )
+        assert request.get_header("X-api-token") is None
+        assert status.display_name == "Paws"
+        assert status.checked_in is True
+
+    @patch("participants.reg_sync.validate_public_https_url")
+    @patch("participants.reg_sync.urlopen")
+    def test_http_404_is_unknown_participant(self, mock_urlopen, _mock_validate_url):
+        mock_urlopen.side_effect = HTTPError(
+            "https://east.sachsenfurs.de/", 404, "Not Found", {}, None
+        )
+        with self.assertRaises(RegParticipantNotFound):
+            fetch_reg_status(82939949)
 
 
 class RegSyncDueParticipantsTest(TestCase):
@@ -84,6 +147,32 @@ class RegSyncDueParticipantsTest(TestCase):
         assert synced == 1
         assert changed == 1
         assert failed == 1
+
+
+class RegSyncUpsertTest(TestCase):
+    @patch("participants.reg_sync.fetch_reg_status")
+    def test_creates_unknown_participant_from_registration_data(self, mock_fetch):
+        mock_fetch.return_value = parse_reg_status(
+            {
+                "checked_in": True,
+                "reg_id": 73,
+                "display_name": "New Attendee",
+            }
+        )
+
+        participant, changed, created = sync_participant_by_telegram_id(987654321)
+
+        assert created is True
+        assert changed is True
+        assert participant.checked_in is True
+        assert participant.reg_id == 73
+        assert Participant.objects.filter(telegram_id=987654321).exists()
+
+    @patch("participants.reg_sync.fetch_reg_status")
+    def test_refuses_new_participant_without_display_name(self, mock_fetch):
+        mock_fetch.return_value = parse_reg_status({"checked_in": True, "reg_id": 73})
+        with self.assertRaisesMessage(RegSyncError, "display_name"):
+            sync_participant_by_telegram_id(987654321)
 
 
 class SyncRegStatusCommandTest(TestCase):
