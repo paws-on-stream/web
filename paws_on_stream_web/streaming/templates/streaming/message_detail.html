@@ -24,6 +24,14 @@
             <dt>Created</dt>
             <dd>{{ message.created_at|date:"d.m.Y H:i" }}</dd>
           </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Spam-Score</dt>
+            <dd>
+              <span class="badge {% if message.spam_score >= spam_threshold %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                {{ message.spam_score|floatformat:2 }} / {{ spam_threshold|floatformat:2 }}
+              </span>
+            </dd>
+          </div>
           <div class="list-group-item">
             <dt class="text-muted">Raw Content</dt>
             <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#rawContent">
@@ -89,6 +97,10 @@
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}
             <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Freigeben</button>
+          </form>
+          <form method="post" action="#" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" name="action" value="reject_spam" class="btn btn-warning btn-sm">Als Spam ablehnen</button>
           </form>
           <form method="post" action="#" class="d-inline">
             {% csrf_token %}

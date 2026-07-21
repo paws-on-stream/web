@@ -27,6 +27,13 @@ class MessageDetailActionTest(TestCase):
         assert self.message.status == "rejected"
         assert self.message.rejection_reason == "unknown"
 
+    def test_reject_as_spam_action(self):
+        response = self.client.post(self.url, {"action": "reject_spam"})
+        assert response.status_code == 302
+        self.message.refresh_from_db()
+        assert self.message.status == "rejected"
+        assert self.message.rejection_reason == "spam"
+
     def test_delete_action(self):
         message_id = self.message.pk
         response = self.client.post(self.url, {"action": "delete"})

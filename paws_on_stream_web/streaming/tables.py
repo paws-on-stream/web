@@ -16,6 +16,7 @@ class MessageTable(tables.Table):
     content = tables.Column(order_by="content")
     media_type = tables.Column(order_by="media_type")
     status = tables.Column(order_by="status")
+    spam_score = tables.Column(order_by="spam_score", verbose_name="Spam")
     created_at = tables.Column(order_by="created_at", verbose_name="Created")
 
     class Meta:
@@ -26,11 +27,16 @@ class MessageTable(tables.Table):
             "content",
             "media_type",
             "status",
+            "spam_score",
             "participant",
             "event",
             "created_at",
         )
         attrs = {"class": "table table-hover table-sm align-middle"}
+
+    def __init__(self, *args, spam_threshold=0.7, **kwargs):
+        self.spam_threshold = spam_threshold
+        super().__init__(*args, **kwargs)
 
     def render_select(self, record):
         return format_html(
@@ -82,6 +88,12 @@ class MessageTable(tables.Table):
             '<span class="badge bg-{}">{}</span>',
             variant,
             label,
+        )
+
+    def render_spam_score(self, value):
+        variant = "warning text-dark" if value >= self.spam_threshold else "secondary"
+        return format_html(
+            '<span class="badge bg-{}">{}</span>', variant, f"{value:.2f}"
         )
 
     def render_content(self, value, record):

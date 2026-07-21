@@ -37,6 +37,16 @@ class MessageListActionHardeningTest(TestCase):
         assert response.headers["Location"].endswith("/streaming/messages/")
         assert not Message.objects.filter(id=self.message.id).exists()
 
+    def test_rejects_selected_messages_as_spam(self):
+        response = self.client.post(
+            "/streaming/messages/",
+            {"action": "reject_spam", "select": [str(self.message.id)]},
+        )
+        assert response.status_code == 302
+        self.message.refresh_from_db()
+        assert self.message.status == "rejected"
+        assert self.message.rejection_reason == "spam"
+
 
 class EventListActionHardeningTest(TestCase):
     def setUp(self):
