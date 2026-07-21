@@ -3,7 +3,8 @@
 Django-Webbackend für **Paws on Stream** mit:
 - REST API für Messages, Participants, Events, Settings und Devices
 - Custom Dashboard (Django Templates + django-tables2)
-- Moderations-Workflow (pending → approved/rejected → displayed)
+- Moderations-Workflow (`pending` → `approved`/`rejected`) mit separatem
+  gerätespezifischem Display-Feedback
 
 ## Voraussetzungen
 
@@ -44,7 +45,8 @@ In `.env`:
 
 Basis: `/api/v1/`
 
-- `messages/` + Actions: `pending`, `display`, `displayed`, `{id}/approve`, `{id}/reject`, `{id}/displayed`
+- `messages/` + Actions: `pending`, `display` (Display-Polling), `{id}/approve`,
+  `{id}/reject`, `{id}/displayed` (gerätespezifisches Ack)
 - `message/` (Bot-Kompatibilitäts-Alias für `POST`)
 - `health/` (`GET`, public, für Bot-/Probe-Checks)
 - `media/upload/` (`POST`, multipart Upload für Bot-Media)
@@ -80,20 +82,22 @@ Alle Dashboard-Ansichten einschließlich lesender Seiten erfordern eine aktive
 Staff-Sitzung. Die gemeinsame Login-Seite unter `/auth/login/` unterstützt
 klassische Django-Staff-Konten und Telegram OpenID Connect.
 
-Telegram-Benutzer starten den OIDC-Flow über die gemeinsame Login-Seite.
-Zugelassen werden ausschließlich aktive Einträge unter **Django Admin →
-Telegram access**. Die numerische Telegram-ID ist die Identität; der Telegram-
-Benutzername dient nicht zur Autorisierung. Normale Freigaben erhalten Zugriff
-auf die Moderationsfunktionen, mit `is_admin` markierte Freigaben dürfen zusätzlich
-die Whitelist verwalten. Eine Deaktivierung beendet eine vorhandene Sitzung bei
-der nächsten Anfrage. Bot und Display verwenden weiterhin ihre separaten API-Tokens.
+Telegram-Benutzer starten den OIDC-Flow über die gemeinsame Login-Seite. Beim
+ersten Versuch wird automatisch ein inaktiver Zugangsantrag mit der numerischen
+Telegram-ID angelegt; der Benutzer bleibt bis zur Freigabe ausgesperrt. Aktive
+Admins verwalten die Anträge unter **Dashboard → Zugänge** und vergeben dort die
+Rolle Staff oder Admin. Staff erhält Zugriff auf die Moderationsfunktionen, Admin
+darf zusätzlich Zugänge freigeben und Rollen ändern. Die numerische Telegram-ID
+ist die Identität; der Telegram-Benutzername dient nicht zur Autorisierung. Eine
+Deaktivierung beendet eine vorhandene Sitzung bei der nächsten Anfrage. Bot und
+Display verwenden weiterhin ihre separaten API-Tokens.
 
 ## Reg-System Sync
 
 Es gibt zwei Wege für den Check-in Sync:
 
 1. Einzelner Participant per API:
-   - `GET /api/v1/participants/{telegram_id}/check_status/`
+   - `POST /api/v1/participants/{telegram_id}/check_status/`
 2. Periodischer Batch-Sync per Management Command:
 
 ```bash
@@ -102,9 +106,23 @@ poetry run python paws_on_stream_web/manage.py sync_reg_status
 
 Der Batch-Sync berücksichtigt `status_check_interval` aus den Settings und synchronisiert nur fällige Teilnehmer.
 
+Der verbindliche Einzelcheck ist ein mutierender `POST`. Ist die Telegram-ID
+lokal unbekannt, fragt das Backend zuerst das Reg-System ab und legt den
+Participant bei einer gültigen Antwort an (`201 Created`). `GET` ist für diesen
+Endpoint nicht erlaubt.
+
 Fehler einzelner Teilnehmer brechen den Batch nicht ab. Der Command verarbeitet
 bis zu 16 Teilnehmer parallel (`--workers`, Standard: 8) und schützt sich über
 eine Datenbank-Lease gegen überlappende Läufe.
+
+## Display-Status
+
+Der Nachrichtenstatus bildet ausschließlich die Moderation ab: `pending`,
+`approved` oder `rejected`. Ein Display-Ack ändert `approved` nicht, damit weitere
+Displays dieselbe Nachricht weiterhin pollen können. `Message.displayed_at`
+enthält den Zeitpunkt des ersten Acks; `DisplayLog` ist die maßgebliche
+gerätespezifische Historie. Dashboard-Filter für „Shown“ und „Approved, not shown“
+werden daraus abgeleitet.
 
 ## Event-Sync
 
