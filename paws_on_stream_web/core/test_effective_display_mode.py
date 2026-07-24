@@ -120,9 +120,9 @@ class EffectiveDisplayModeTest(TestCase):
         assert response.json()["display_mode"] == "chat"
         assert response.json()["event_id"] is None
 
-    def test_event_without_messages_is_ignored(self):
+    def test_event_without_messages_still_overrides_display_mode(self):
         now = timezone.now()
-        EventFactory(
+        event = EventFactory(
             is_active=True,
             allow_messages=False,
             starts_at=now - timedelta(hours=1),
@@ -132,8 +132,11 @@ class EffectiveDisplayModeTest(TestCase):
 
         response = self.get_mode()
 
-        assert response.json()["display_mode"] == "chat"
-        assert response.json()["event_id"] is None
+        assert response.json() == {
+            "display_mode": "crawling",
+            "source": "event",
+            "event_id": event.id,
+        }
 
     def test_bot_token_can_only_read_effective_mode(self):
         allowed = self.get_mode()

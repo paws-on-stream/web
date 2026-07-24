@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from streaming.factories import MediaAssetFactory, TextMessageFactory
+from streaming.factories import EventFactory, MediaAssetFactory, TextMessageFactory
 
 from core.factories import SettingsFactory
 from core.models import DisplayLog, WebDisplayAccess
@@ -136,6 +136,23 @@ class PublicWebDisplayTest(TestCase):
         assert payload["theme"]["assets"]["chat_top"]["url"].startswith(
             "http://testserver/monitor/themes/east13/3.0.0/assets/chat_top/"
         )
+
+    def test_feed_applies_event_display_overrides_when_messages_are_disabled(self):
+        now = timezone.now()
+        EventFactory(
+            is_active=True,
+            allow_messages=False,
+            starts_at=now - timedelta(hours=1),
+            ends_at=now + timedelta(hours=1),
+            display_mode="crawling",
+            scroll_speed_px=9,
+        )
+        self._authorize()
+
+        payload = self.client.get("/monitor/feed/").json()
+
+        assert payload["settings"]["display_mode"] == "crawling"
+        assert payload["settings"]["scroll_speed_px"] == 9
 
     def test_monitor_theme_asset_requires_access_and_returns_original_png(self):
         url = "/monitor/themes/east13/3.0.0/assets/chat_top/"

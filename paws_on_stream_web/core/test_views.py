@@ -1,8 +1,10 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
+from streaming.factories import EventFactory
 
 from core.factories import DisplayDeviceFactory, DisplayLogFactory, SettingsFactory
 from core.models import DisplayDevice, Settings
@@ -29,6 +31,26 @@ class SettingsViewTest(APITestCase):
         assert response.json()["rate_limit_per_minute"] == 10
         assert response.json()["bot_status"] == "online"
         assert response.json()["display_mode"] == "chat"
+
+    def test_retrieve_settings_applies_independent_event_overrides(self):
+        now = timezone.now()
+        event = EventFactory(
+            is_active=True,
+            allow_messages=False,
+            starts_at=now - timedelta(hours=1),
+            ends_at=now + timedelta(hours=1),
+            display_mode="",
+            scroll_speed_px=7,
+        )
+
+        response = self.client.get("/api/v1/settings/1/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["display_mode"] == "chat"
+        assert response.json()["scroll_speed_px"] == 7
+        assert response.json()["display_mode_source"] == "global"
+        assert response.json()["scroll_speed_source"] == "event"
+        assert response.json()["event_id"] == event.id
 
     def test_update_settings(self):
         data = {"rate_limit_per_minute": 20, "bot_status": "maintenance"}

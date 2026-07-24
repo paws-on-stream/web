@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.auth import AdminRequiredMixin, StaffRequiredMixin, StrictStaffRequiredMixin
+from core.effective_display import get_effective_display_settings
 from core.forms import (
     DisplayDeviceForm,
     SettingsForm,
@@ -47,29 +48,13 @@ class SettingsViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["get"], url_path="effective-display-mode")
     def effective_display_mode(self, request):  # noqa: ARG002
-        from streaming.models import Event
-
         app_settings = Settings.get_settings()
-        now = datetime.now(tz=UTC)
-        active_event = Event.objects.filter(
-            is_active=True,
-            allow_messages=True,
-            starts_at__lte=now,
-            ends_at__gte=now,
-        ).first()
-        if active_event and active_event.display_mode:
-            return Response(
-                {
-                    "display_mode": active_event.display_mode,
-                    "source": "event",
-                    "event_id": active_event.id,
-                }
-            )
+        effective = get_effective_display_settings(app_settings)
         return Response(
             {
-                "display_mode": app_settings.display_mode,
-                "source": "global",
-                "event_id": active_event.id if active_event else None,
+                "display_mode": effective.display_mode,
+                "source": effective.display_mode_source,
+                "event_id": effective.event.id if effective.event else None,
             }
         )
 
@@ -77,6 +62,12 @@ class SettingsViewSet(viewsets.GenericViewSet):
         settings = Settings.get_settings()
         serializer = self.get_serializer(settings)
         data = serializer.data
+        effective = get_effective_display_settings(settings)
+        data["display_mode"] = effective.display_mode
+        data["scroll_speed_px"] = effective.scroll_speed_px
+        data["display_mode_source"] = effective.display_mode_source
+        data["scroll_speed_source"] = effective.scroll_speed_source
+        data["event_id"] = effective.event.id if effective.event else None
         # Strip trailing whitespace / hide empty reg_api_key
         if data.get("reg_api_key"):
             data["reg_api_key"] = data["reg_api_key"].strip()

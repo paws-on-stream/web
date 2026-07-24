@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from streaming.models import Message
 
+from core.effective_display import get_effective_display_settings
 from core.models import Settings, WebDisplayAccess
 from core.themes import get_display_theme, get_theme_asset, with_asset_urls
 
@@ -224,6 +225,7 @@ def web_display_feed(request):
         next_cursor = _encode_cursor(now)
 
     app_settings = Settings.get_settings()
+    effective = get_effective_display_settings(app_settings)
     theme = _theme_with_urls(
         request,
         get_display_theme(app_settings.overlay_theme),
@@ -233,9 +235,9 @@ def web_display_feed(request):
         {
             "messages": [_message_payload(request, item) for item in messages],
             "settings": {
-                "display_mode": app_settings.display_mode,
+                "display_mode": effective.display_mode,
                 "display_duration_sec": app_settings.display_duration_sec,
-                "scroll_speed_px": app_settings.scroll_speed_px,
+                "scroll_speed_px": effective.scroll_speed_px,
                 "overlay_font_size": app_settings.overlay_font_size,
                 "overlay_theme": app_settings.overlay_theme,
             },
