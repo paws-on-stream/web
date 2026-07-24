@@ -98,6 +98,23 @@ DATABASES = {
     "default": config("DATABASE_URL", default="sqlite:///db.sqlite3", cast=db_url)
 }
 
+REDIS_URL = config("REDIS_URL", default="")
+CACHES = (
+    {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+    if REDIS_URL
+    else {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "paws-on-stream-local",
+        }
+    }
+)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
