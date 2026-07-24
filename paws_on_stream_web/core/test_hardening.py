@@ -14,6 +14,19 @@ class DashboardAccessTest(TestCase):
         assert metrics.status_code == 200
         assert b"paws_messages" in metrics.content
 
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_operational_endpoints_are_exempt_from_https_redirect(self):
+        assert self.client.get("/api/v1/health/").status_code == 200
+        assert self.client.get("/api/v1/readiness/").status_code == 200
+        assert self.client.get("/metrics/").status_code == 200
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_other_endpoints_still_redirect_to_https(self):
+        response = self.client.get("/api/v1/settings/1/")
+
+        assert response.status_code == 301
+        assert response["Location"] == "https://testserver/api/v1/settings/1/"
+
 
 @override_settings(
     API_AUTH_TOKEN="admin-token",
