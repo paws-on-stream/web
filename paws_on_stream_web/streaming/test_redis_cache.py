@@ -1,5 +1,5 @@
-from uuid import uuid4
 from unittest import skipUnless
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.cache import cache
