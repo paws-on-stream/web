@@ -9,6 +9,7 @@ jobs:
       DEBUG: "False"
       SECRET_KEY: ci-only-not-used-outside-github-actions
       DATABASE_URL: postgres://dev_user:dev_pass@postgres:5432/dev_db
+      REDIS_URL: redis://redis:6379/0
       API_AUTH_TOKEN: ci-api-token
       ALLOWED_HOSTS: testserver
     services:
@@ -20,6 +21,13 @@ jobs:
           POSTGRES_DB: dev_db
         options: >-
           --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.4-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

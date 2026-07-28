@@ -181,6 +181,66 @@ class MediaUploadAndMessageContractTest(TestCase):
         assert response.json()["media_frame_count"] == 2
         assert response.json()["media_duration_ms"] == 300
 
+    def test_animated_webp_flows_from_upload_to_display(self):
+        client = APIClient()
+        participant = ParticipantFactory(checked_in=True)
+        EventFactory(is_active=True)
+        SettingsFactory()
+
+        upload_response = client.post(
+            "/api/v1/media/upload/",
+            {
+                "file": SimpleUploadedFile(
+                    "animation.webp",
+                    animated_webp_bytes(),
+                    content_type="image/webp",
+                ),
+                "media_type": "gif",
+                "telegram_file_id": "tg-animation-flow",
+                "telegram_file_unique_id": "tg-animation-flow-unique",
+            },
+            format="multipart",
+            HTTP_X_API_TOKEN="test-token",
+        )
+        assert upload_response.status_code == 201
+        upload_data = upload_response.json()
+
+        message_response = client.post(
+            "/api/v1/message/",
+            {
+                "telegram_id": participant.telegram_id,
+                "display_name": participant.display_name,
+                "content": "",
+                "media_type": "gif",
+                "media_asset_id": upload_data["media_asset_id"],
+                "sticker_emoji": "",
+            },
+            format="json",
+            HTTP_X_API_TOKEN="test-token",
+        )
+        assert message_response.status_code == 201, message_response.content
+        message_data = message_response.json()
+        assert message_data["media_animated"] is True
+        assert message_data["media_frame_count"] == 2
+        assert message_data["media_duration_ms"] == 300
+
+        approve_response = client.post(
+            f"/api/v1/messages/{message_data['id']}/approve/",
+            HTTP_X_API_TOKEN="test-token",
+        )
+        assert approve_response.status_code == 200
+
+        display_response = client.get(
+            "/api/v1/messages/display/",
+            HTTP_X_API_TOKEN="test-token",
+        )
+        assert display_response.status_code == 200
+        displayed = display_response.json()["results"][0]
+        assert displayed["id"] == message_data["id"]
+        assert displayed["media_url"] == upload_data["media_url"]
+        assert displayed["media_animated"] is True
+        assert displayed["media_sha256"] == upload_data["sha256"]
+
     def test_upload_rejects_oversized_dimensions_and_direct_media_url(self):
         client = APIClient()
         upload = client.post(
