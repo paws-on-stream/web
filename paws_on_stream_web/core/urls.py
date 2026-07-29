@@ -1,6 +1,7 @@
 from django.urls import path
 
 from core.views import (
+    DebugToolsView,
     DisplayDeviceDeleteView,
     DisplayDeviceDetailView,
     DisplayDeviceListView,
@@ -50,6 +51,7 @@ urlpatterns = [
         name="telegram_access_edit",
     ),
     path("web-display/", WebDisplayAccessView.as_view(), name="web_display_access"),
+    path("debug/", DebugToolsView.as_view(), name="debug_tools"),
     path("themes/", DisplayThemeManagementView.as_view(), name="theme_management"),
     path(
         "themes/<int:pk>/edit/",

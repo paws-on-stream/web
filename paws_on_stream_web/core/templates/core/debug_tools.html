@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Debug-Werkzeuge — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="mb-0">Debug-Werkzeuge</h1>
+      <small class="text-muted">Ausschließlich für administrative Betriebsprüfungen.</small>
+    </div>
+  </div>
+  <div class="card border-warning" style="max-width: 52rem">
+    <div class="card-header">Display-Testnachricht</div>
+    <div class="card-body">
+      <p>Erzeugt eine freigegebene Testnachricht und liefert sie über den normalen Display-Flow aus.</p>
+      <div class="d-flex flex-wrap gap-2">
+        {% for media_type, label in test_media_types %}
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="media_type" value="{{ media_type }}">
+            <button class="btn btn-outline-primary" type="submit">{{ label }}</button>
+          </form>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

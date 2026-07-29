@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import tempfile
+import uuid
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,11 +22,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
 from django_tables2 import SingleTableView
-from PIL import Image, UnidentifiedImageError
+from participants.models import Participant
+from PIL import Image, ImageDraw, UnidentifiedImageError
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from streaming.models import MediaAsset, Message
 
 from core.auth import AdminRequiredMixin, StaffRequiredMixin, StrictStaffRequiredMixin
 from core.effective_display import get_effective_display_settings
@@ -287,6 +290,98 @@ class WebDisplayAccessView(AdminRequiredMixin, TemplateView):
             return HttpResponseBadRequest("Unsupported web display action.")
         context["web_display_access"] = access
         return self.render_to_response(context)
+
+
+def _create_debug_media(media_type: str) -> MediaAsset:
+    """Create a self-contained WebP asset for display-pipeline testing."""
+    colors = {
+        "photo": (39, 130, 204, 255),
+        "gif": (143, 63, 191, 255),
+        "sticker": (26, 143, 92, 0),
+    }
+    image = Image.new("RGBA", (480, 270), colors[media_type])
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((16, 16, 464, 254), outline=(255, 255, 255, 255), width=6)
+    draw.text((42, 112), f"TEST {media_type.upper()}", fill=(255, 255, 255, 255))
+    payload = io.BytesIO()
+    animated = media_type == "gif"
+    if animated:
+        second = Image.new("RGBA", (480, 270), (236, 142, 34, 255))
+        ImageDraw.Draw(second).text((42, 112), "TEST GIF", fill=(255, 255, 255, 255))
+        image.save(
+            payload,
+            format="WEBP",
+            save_all=True,
+            append_images=[second],
+            duration=500,
+            loop=0,
+            lossless=True,
+        )
+    else:
+        image.save(payload, format="WEBP", lossless=True)
+    identifier = uuid.uuid4().hex
+    content = payload.getvalue()
+    asset = MediaAsset(
+        media_type=media_type,
+        telegram_file_id=f"admin-test-{identifier}",
+        telegram_file_unique_id=f"admin-test-{identifier}",
+        sticker_emoji="🐾" if media_type == "sticker" else "",
+        source_filename=f"admin-test-{media_type}.webp",
+        format="webp",
+        animated=animated,
+        width=480,
+        height=270,
+        duration_ms=1000 if animated else 0,
+        frame_count=2 if animated else 1,
+        has_alpha=media_type == "sticker",
+        sha256=hashlib.sha256(content).hexdigest(),
+    )
+    asset.file.save(f"admin-test-{identifier}.webp", ContentFile(content), save=False)
+    asset.save()
+    return asset
+
+
+class DebugToolsView(AdminRequiredMixin, TemplateView):
+    """Admin-only operational tools that must not clutter the dashboard."""
+
+    template_name = "core/debug_tools.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["test_media_types"] = (
+            ("text", "Text"),
+            ("photo", "Foto"),
+            ("gif", "GIF"),
+            ("sticker", "Sticker"),
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        media_type = request.POST.get("media_type", "")
+        if media_type not in {"text", "photo", "gif", "sticker"}:
+            return HttpResponseBadRequest("Unsupported test media type.")
+        participant, _ = Participant.objects.get_or_create(
+            telegram_id=0,
+            defaults={"display_name": "Display-Test", "checked_in": True},
+        )
+        labels = {"text": "Text", "photo": "Foto", "gif": "GIF", "sticker": "Sticker"}
+        asset = _create_debug_media(media_type) if media_type != "text" else None
+        Message.objects.create(
+            participant=participant,
+            content=f"Display-Testnachricht: {labels[media_type]}",
+            raw_content=f"Display-Testnachricht: {labels[media_type]}",
+            media_type=media_type,
+            media_asset=asset,
+            sticker_emoji="🐾" if media_type == "sticker" else "",
+            status="approved",
+            approved_at=timezone.now(),
+            approved_by=request.user,
+        )
+        messages.success(
+            request,
+            f"Testnachricht ({labels[media_type]}) wurde an die Displays gesendet.",
+        )
+        return redirect("core:debug_tools")
 
 
 class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):

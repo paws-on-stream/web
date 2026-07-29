@@ -173,10 +173,13 @@ class DashboardViewTest(TestCase):
         self.client.force_login(admin)
 
         for media_type in ("text", "photo", "gif", "sticker"):
-            response = self.client.post("/test-message/", {"media_type": media_type})
+            response = self.client.post("/core/debug/", {"media_type": media_type})
 
-            assert response.status_code == 200
-            message = Message.objects.get(pk=response.json()["message_id"])
+            assert response.status_code == 302
+            message = Message.objects.filter(
+                media_type=media_type,
+                content__startswith="Display-Testnachricht:",
+            ).latest("approved_at")
             assert message.status == "approved"
             assert message.media_type == media_type
             if media_type == "text":
@@ -186,6 +189,6 @@ class DashboardViewTest(TestCase):
                 assert message.media_asset.format == "webp"
 
     def test_test_message_endpoint_requires_admin(self):
-        response = self.client.post("/test-message/", {"media_type": "text"})
+        response = self.client.post("/core/debug/", {"media_type": "text"})
 
         assert response.status_code == 403
