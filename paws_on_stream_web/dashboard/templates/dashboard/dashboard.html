@@ -3,35 +3,37 @@
 {% block title %}Dashboard — Paws on Stream{% endblock %}
 
 {% block content %}
-  <div class="row mb-3 align-items-center">
-    <div class="col">
-      <h1 class="mb-0">Dashboard</h1>
-      <small class="text-muted">Quick moderation overview</small>
-    </div>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h1 class="mb-0">Moderations-Dashboard</h1><small class="text-muted">Queue wird alle 3 Sekunden aktualisiert</small></div>
+    <div class="text-end"><span class="badge text-bg-success" id="dashboard-live-status">Live</span><div class="small text-muted" id="dashboard-updated-at">Lädt…</div></div>
   </div>
 
-  <div class="container">
-    <div class="row">
-      {% for kpi in kpis %}
-        <div class="col">
-          <div class="card text-center">
-            <div class="card-header"><h6>{{ kpi.name }}</h6></div>
-            <div class="card-body">
-              {{ kpi.value }}
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-  <hr/>
-  <div class="container">
-    {% for message in recent_messages %}
-      {% include "streaming/inc/message_small.html" %}
-    {% endfor %}
-    {% if not recent_messages %}
-      <div class="text-muted">No pending messages right now.</div>
-    {% endif %}
+  <div class="row g-3 mb-4" id="dashboard-kpis">
+    <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-muted">Wartend</div><div class="fs-2 fw-bold" id="kpi-pending">{{ kpis.0.value }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-muted">Nachrichten / Min.</div><div class="fs-2 fw-bold" id="kpi-rate">{{ kpis.1.value }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-muted">Teilnehmer</div><div class="fs-2 fw-bold" id="kpi-participants">{{ kpis.2.value }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-muted">Bot</div><div class="fs-5 fw-bold text-capitalize" id="kpi-bot-status">—</div><div class="small text-muted" id="kpi-event">Kein aktives Event</div></div></div></div>
   </div>
 
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h4 mb-0">Wartende Nachrichten</h2><span class="small text-muted">↑/↓ auswählen · A freigeben · R ablehnen</span></div>
+  <div id="moderation-queue" class="vstack gap-2" aria-live="polite"></div>
+  <div id="moderation-empty" class="card"><div class="card-body text-center text-muted py-5">Keine wartenden Nachrichten.</div></div>
+  <noscript><div class="mt-3">{% for message in recent_messages %}{% include "streaming/inc/message_small.html" %}{% empty %}<div class="text-muted">Keine wartenden Nachrichten.</div>{% endfor %}</div></noscript>
+
+  <template id="moderation-card-template"><article class="card moderation-card" tabindex="0"><div class="card-body"><div class="d-flex justify-content-between gap-3"><div class="min-w-0"><div class="d-flex gap-2 align-items-center mb-1"><strong class="message-name"></strong><span class="badge text-bg-secondary message-type"></span><small class="text-muted message-event"></small></div><div class="message-content text-break"></div><img class="message-media img-thumbnail mt-2 d-none" alt="Medienvorschau" style="max-height: 160px; max-width: 240px"></div><div class="btn-group btn-group-sm align-self-start"><button class="btn btn-outline-success action-approve" title="Freigeben (A)"><i class="bi bi-check-lg"></i><span class="visually-hidden">Freigeben</span></button><button class="btn btn-outline-danger action-reject" title="Ablehnen (R)"><i class="bi bi-x-lg"></i><span class="visually-hidden">Ablehnen</span></button></div></div></div></article></template>
+
+  <script>
+  (() => {
+    const queue = document.querySelector('#moderation-queue'); const empty = document.querySelector('#moderation-empty'); const template = document.querySelector('#moderation-card-template');
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'; let selected = 0; let cards = [];
+    const setText = (id, value) => { document.querySelector(id).textContent = value ?? '—'; };
+    const selectCard = () => { cards.forEach((card, index) => card.classList.toggle('border-primary', index === selected)); cards[selected]?.focus({preventScroll:true}); };
+    async function act(id, action) { const body = new URLSearchParams({message_id:id, action}); const response = await fetch('{% url "dashboard:dashboard" %}', {method:'POST', headers:{'X-CSRFToken':csrf, 'Accept':'application/json', 'Content-Type':'application/x-www-form-urlencoded'}, body}); if (!response.ok) throw new Error(await response.text()); await refresh(); }
+    function render(data) { const k = data.kpis; setText('#kpi-pending', k.pending_count); setText('#kpi-rate', k.messages_per_minute); setText('#kpi-participants', k.participants); setText('#kpi-bot-status', k.bot_status); setText('#kpi-event', k.active_event ? `${k.active_event.name} · ${k.active_event.remaining_minutes} Min.` : 'Kein aktives Event'); setText('#dashboard-updated-at', `Aktualisiert ${new Date(data.updated_at).toLocaleTimeString()}`); queue.replaceChildren(); data.messages.forEach(message => { const card = template.content.firstElementChild.cloneNode(true); card.dataset.messageId = message.id; card.querySelector('.message-name').textContent = message.participant?.display_name || 'Unbekannt'; card.querySelector('.message-type').textContent = message.media_type_display || message.media_type; card.querySelector('.message-event').textContent = message.event_name; card.querySelector('.message-content').textContent = message.content || message.sticker_emoji || ''; if (message.media_url) { const image = card.querySelector('.message-media'); image.src = message.media_url; image.classList.remove('d-none'); } card.querySelector('.action-approve').addEventListener('click', () => act(message.id, 'approve').catch(showError)); card.querySelector('.action-reject').addEventListener('click', () => act(message.id, 'reject').catch(showError)); card.addEventListener('focus', () => { selected = cards.indexOf(card); selectCard(); }); queue.append(card); }); cards = [...queue.children]; selected = Math.min(selected, Math.max(cards.length - 1, 0)); empty.hidden = cards.length > 0; if (cards.length) selectCard(); }
+    function showError(error) { console.error(error); document.querySelector('#dashboard-live-status').className = 'badge text-bg-danger'; document.querySelector('#dashboard-live-status').textContent = 'Fehler'; }
+    async function refresh() { try { const response = await fetch('{% url "dashboard:dashboard_live" %}', {headers:{'Accept':'application/json'}}); if (!response.ok) throw new Error('Live-Aktualisierung fehlgeschlagen'); render(await response.json()); document.querySelector('#dashboard-live-status').className = 'badge text-bg-success'; document.querySelector('#dashboard-live-status').textContent = 'Live'; } catch (error) { showError(error); } }
+    document.addEventListener('keydown', event => { if (event.target.matches('input, textarea, select, button')) return; if (!cards.length) return; if (event.key === 'ArrowDown') { event.preventDefault(); selected = Math.min(selected + 1, cards.length - 1); selectCard(); } else if (event.key === 'ArrowUp') { event.preventDefault(); selected = Math.max(selected - 1, 0); selectCard(); } else if (event.key.toLowerCase() === 'a') { act(cards[selected].dataset.messageId, 'approve').catch(showError); } else if (event.key.toLowerCase() === 'r') { act(cards[selected].dataset.messageId, 'reject').catch(showError); } });
+    refresh(); let timer = setInterval(() => { if (!document.hidden) refresh(); }, 3000); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  })();
+  </script>
 {% endblock %}

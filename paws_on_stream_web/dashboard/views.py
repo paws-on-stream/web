@@ -3,10 +3,12 @@
 from datetime import timedelta
 
 from core.models import DisplayDevice, Settings
-from django.http import HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 from participants.models import Participant
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -54,6 +56,9 @@ def dashboard(request):
         except ValueError as exc:
             return HttpResponseBadRequest(str(exc))
 
+        if "application/json" in request.headers.get("Accept", ""):
+            return JsonResponse({"status": "ok", "message_id": str(message.pk)})
+
         return redirect(reverse("dashboard:dashboard"))
 
     pending_count = Message.objects.filter(status="pending").count()
@@ -100,6 +105,63 @@ def dashboard(request):
         "api_token": request.META.get("API_AUTH_TOKEN", ""),
     }
     return render(request, "dashboard/dashboard.html", context)
+
+
+def _dashboard_payload(request):
+    now = timezone.now()
+    five_min_ago = now - timedelta(minutes=5)
+    settings = Settings.get_settings()
+    active_event = Event.objects.filter(
+        is_active=True, starts_at__lte=now, ends_at__gte=now
+    ).first()
+    queue = (
+        Message.objects.filter(status="pending")
+        .select_related("participant", "event", "media_asset")
+        .order_by("-created_at")[:50]
+    )
+    messages = MessageSerializer(
+        queue, many=True, context={"request": request}
+    ).data
+    for serialized_message, message in zip(messages, queue, strict=True):
+        serialized_message["event_name"] = message.event.name if message.event else ""
+
+    return {
+        "kpis": {
+            "pending_count": Message.objects.filter(status="pending").count(),
+            "approved_count": Message.objects.filter(status="approved").count(),
+            "displayed_count": Message.objects.filter(
+                displayed_at__isnull=False
+            ).count(),
+            "rejected_count": Message.objects.filter(status="rejected").count(),
+            "messages_per_minute": round(
+                Message.objects.filter(created_at__gte=five_min_ago).count() / 5, 1
+            ),
+            "participants": Participant.objects.count(),
+            "bot_status": settings.bot_status,
+            "auto_approve": settings.auto_approve,
+            "active_event": (
+                {
+                    "name": active_event.name,
+                    "remaining_minutes": round(
+                        (active_event.ends_at - now).total_seconds() / 60
+                    ),
+                }
+                if active_event
+                else None
+            ),
+        },
+        "messages": messages,
+        "updated_at": now.isoformat(),
+    }
+
+
+@require_GET
+@never_cache
+def dashboard_live(request):
+    """Staff-only live moderation queue and KPI data."""
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return HttpResponseForbidden("Staff login required.")
+    return JsonResponse(_dashboard_payload(request))
 
 
 def messages_page(request):
