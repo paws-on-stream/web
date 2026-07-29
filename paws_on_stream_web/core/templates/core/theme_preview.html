@@ -1,3 +1,101 @@
 {% load static %}
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Theme-Vorschau — {{ theme_version.name }}</title><link href="{% static 'css/app.css' %}" rel="stylesheet"></head>
-<body class="p-3 bg-body-tertiary"><main class="container-fluid"><div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h4 mb-0">{{ theme_version.name }} · gespeicherte Vorschau</h1><a class="btn btn-sm btn-outline-secondary" href="{% url 'core:theme_editor' theme_version.pk %}">Editor</a></div><ul class="nav nav-tabs" role="tablist"><li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#bubble" type="button">Bubble</button></li><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#crawling" type="button">Crawling</button></li></ul><div class="tab-content border border-top-0 bg-dark p-4"><section id="bubble" class="tab-pane fade show active"><div id="bubble-stage" class="theme-preview-stage"></div></section><section id="crawling" class="tab-pane fade"><div id="crawl-stage" class="theme-preview-stage"></div></section></div></main>{{ theme_json|json_script:"theme-preview-data" }}<script src="{% static 'js/app.js' %}"></script><script>(() => { const theme = JSON.parse(document.querySelector('#theme-preview-data').textContent); const sample = {name: 'Alex Example', text: 'Willkommen bei Paws on Stream!'}; const color = (v, fallback) => /^#[0-9a-f]{6}$/i.test(v || '') ? v : fallback; const chat = theme.chat || {}; const styles = chat.styles || {}; const background = chat.background || {}; const bubble = document.querySelector('#bubble-stage'); bubble.style.background = color(theme.canvas?.background_color, '#111827'); const card = document.createElement('article'); card.className = 'p-4 rounded-3 shadow'; card.style.cssText = `max-width:${chat.max_width || 720}px;background:${color(background.color, '#f8fafc')};border:3px solid ${color(background.border_color, '#38bdf8')};`; const name = document.createElement('div'); name.textContent = sample.name; name.style.cssText = `font-size:${styles.name?.font_size || 30}px;color:${color(styles.name?.color, '#5b21b6')};font-weight:700`; const text = document.createElement('div'); text.textContent = sample.text; text.style.cssText = `font-size:${styles.message?.font_size || 28}px;color:${color(styles.message?.color, '#111827')};`; card.append(name, text); bubble.append(card); const crawl = document.querySelector('#crawl-stage'); crawl.style.background = color(theme.canvas?.background_color, '#111827'); const ticker = document.createElement('div'); ticker.className = 'p-3 rounded-pill overflow-hidden'; ticker.style.cssText = `background:${color(theme.ticker?.background?.color, '#172033')};border:2px solid ${color(theme.ticker?.background?.border_color, '#38bdf8')};color:${color(theme.ticker?.text?.color, '#fff')};`; ticker.innerHTML = `<strong>${sample.name}</strong> · ${sample.text}`; crawl.append(ticker); })();</script></body></html>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Theme-Vorschau — {{ theme_version.name }}</title>
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+  <style>
+    .theme-preview-stage { min-height: 22rem; padding: 3rem; }
+    .theme-preview-frame { max-width: 700px; }
+    .theme-preview-frame > * { background-size: 100% 100%; background-repeat: no-repeat; }
+    .theme-preview-frame-middle { background-repeat: repeat-y; background-size: 100% auto; min-height: 8rem; }
+  </style>
+</head>
+<body class="p-3 bg-body-tertiary">
+  <main class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h4 mb-0">{{ theme_version.name }} · gespeicherte Vorschau</h1>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:theme_editor' theme_version.pk %}">Editor</a>
+    </div>
+    <div class="btn-group mb-3" role="group" aria-label="Vorschau-Stil">
+      <input class="btn-check" id="preview-graphics" name="preview-style" type="radio" checked>
+      <label class="btn btn-outline-primary" for="preview-graphics">Grafikrahmen</label>
+      <input class="btn-check" id="preview-fallback" name="preview-style" type="radio">
+      <label class="btn btn-outline-primary" for="preview-fallback">CSS-Fallback</label>
+    </div>
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#bubble" type="button">Bubble</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#crawling" type="button">Crawling</button></li>
+    </ul>
+    <div class="tab-content border border-top-0 bg-dark p-4">
+      <section id="bubble" class="tab-pane fade show active"><div id="bubble-stage" class="theme-preview-stage"></div></section>
+      <section id="crawling" class="tab-pane fade"><div id="crawl-stage" class="theme-preview-stage"></div></section>
+    </div>
+  </main>
+  {{ theme_json|json_script:"theme-preview-data" }}
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+  (() => {
+    const theme = JSON.parse(document.querySelector('#theme-preview-data').textContent);
+    const sample = {name: 'Alex Example', text: 'Willkommen bei Paws on Stream!'};
+    const color = (value, fallback) => /^#[0-9a-f]{6}$/i.test(value || '') ? value : fallback;
+    const chat = theme.chat || {};
+    const styles = chat.styles || {};
+    const background = chat.background || {};
+    const frame = background.frame || {};
+    const assetUrl = id => theme.assets?.[id]?.url || '';
+
+    function makeText() {
+      const content = document.createElement('div');
+      content.className = 'px-5 py-3';
+      const name = document.createElement('div');
+      name.textContent = sample.name;
+      name.style.cssText = `font-size:${styles.name?.font_size || 30}px;color:${color(styles.name?.color, '#5b21b6')};font-weight:700`;
+      const text = document.createElement('div');
+      text.textContent = sample.text;
+      text.style.cssText = `font-size:${styles.message?.font_size || 28}px;color:${color(styles.message?.color, '#111827')};`;
+      content.append(name, text);
+      return content;
+    }
+
+    function renderBubble() {
+      const stage = document.querySelector('#bubble-stage');
+      stage.replaceChildren();
+      stage.style.background = color(theme.canvas?.background_color, '#111827');
+      const useGraphics = document.querySelector('#preview-graphics').checked;
+      const hasFrame = frame.type === 'segmented_vertical' && assetUrl(frame.top) && assetUrl(frame.middle) && assetUrl(frame.bottom);
+      if (useGraphics && hasFrame) {
+        const wrapper = document.createElement('article');
+        wrapper.className = 'theme-preview-frame shadow';
+        const top = document.createElement('div'); top.style.backgroundImage = `url("${assetUrl(frame.top)}")`; top.style.minHeight = `${theme.assets[frame.top].height || 40}px`;
+        const middle = document.createElement('div'); middle.className = 'theme-preview-frame-middle'; middle.style.backgroundImage = `url("${assetUrl(frame.middle)}")`; middle.append(makeText());
+        const bottom = document.createElement('div'); bottom.style.backgroundImage = `url("${assetUrl(frame.bottom)}")`; bottom.style.minHeight = `${theme.assets[frame.bottom].height || 40}px`;
+        wrapper.append(top, middle, bottom); stage.append(wrapper);
+        return;
+      }
+      const card = document.createElement('article');
+      card.className = 'p-4 rounded-3 shadow';
+      card.style.cssText = `max-width:${chat.max_width || 720}px;background:${color(background.color, '#f8fafc')};border:3px solid ${color(background.border_color, '#38bdf8')};`;
+      card.append(makeText()); stage.append(card);
+    }
+
+    function renderCrawling() {
+      const stage = document.querySelector('#crawl-stage');
+      stage.replaceChildren();
+      stage.style.background = color(theme.canvas?.background_color, '#111827');
+      const ticker = document.createElement('div');
+      ticker.className = 'p-3 rounded-pill overflow-hidden';
+      ticker.style.cssText = `background:${color(theme.ticker?.background?.color, '#172033')};border:2px solid ${color(theme.ticker?.background?.border_color, '#38bdf8')};color:${color(theme.ticker?.text?.color, '#fff')};`;
+      const name = document.createElement('strong'); name.textContent = sample.name;
+      ticker.append(name, document.createTextNode(` · ${sample.text}`)); stage.append(ticker);
+    }
+
+    function render() { renderBubble(); renderCrawling(); }
+    document.querySelectorAll('[name="preview-style"]').forEach(input => input.addEventListener('change', render));
+    render();
+  })();
+  </script>
+</body>
+</html>

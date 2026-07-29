@@ -191,6 +191,8 @@ class ThemeManagementTest(TestCase):
         assert page.status_code == 200
         self.assertContains(page, "Bubble")
         self.assertContains(page, "Crawling")
+        self.assertContains(page, "Grafikrahmen")
+        self.assertContains(page, "CSS-Fallback")
         asset = self.client.get(
             f"/core/themes/{version.pk}/preview/assets/frame/"
         )
