@@ -170,6 +170,7 @@ class ThemeManagementTest(TestCase):
         page = self.client.get(editor_url)
         assert page.status_code == 200
         self.assertContains(page, "theme.json")
+        self.assertContains(page, f"/core/themes/{version.pk}/preview/")
 
         response = self.client.post(
             editor_url,
