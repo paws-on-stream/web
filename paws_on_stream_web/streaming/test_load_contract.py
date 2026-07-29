@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from core.factories import SettingsFactory
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -7,10 +8,8 @@ from participants.factories import ParticipantFactory
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.factories import SettingsFactory
 from streaming.factories import EventFactory
 from streaming.models import Message
-
 
 TEST_TOKEN = "load-test-token"
 
@@ -67,6 +66,8 @@ class MessageLoadContractTest(TestCase):
         ]
         limited = self._create_message(participant, "Rate-limit message 11")
 
-        assert all(response.status_code == status.HTTP_201_CREATED for response in accepted)
+        assert all(
+            response.status_code == status.HTTP_201_CREATED for response in accepted
+        )
         assert limited.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert Message.objects.filter(participant=participant).count() == 10
