@@ -1,11 +1,14 @@
 import hashlib
+import io
 import json
 import tempfile
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
 from django.contrib import messages
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection, transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect
@@ -44,6 +47,7 @@ from core.tables import DisplayDeviceTable, DisplayLogTable
 from core.theme_import import ThemeImportError, import_theme_package
 from core.themes import (
     MAX_ASSET_BYTES,
+    _theme_path,
     _validate_v3_theme,
     builtin_themes,
     clear_theme_cache,
@@ -308,6 +312,12 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
             return self._upload(request)
         if action == "activate-builtin":
             return self._activate_builtin(request)
+        if action == "clone-builtin":
+            return self._clone_builtin(request)
+        if action == "download-builtin":
+            return self._download_builtin(request)
+        if action == "download-version":
+            return self._download_version(request)
         if action == "activate-version":
             return self._activate_version(request)
         if action == "delete-version":
@@ -332,6 +342,81 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
 
     def _activate_builtin(self, request):
         return DisplayThemeEditorView._activate_builtin(self, request)
+
+    def _clone_builtin(self, request):
+        slug = request.POST.get("slug", "")
+        if slug not in {theme["slug"] for theme in builtin_themes()}:
+            return HttpResponseBadRequest("Unknown builtin theme.")
+        source = _theme_path(slug)
+        manifest = json.loads(source.read_text(encoding="utf-8"))
+        if manifest.get("schema_version") != 3:
+            return HttpResponseBadRequest("Nur Theme-Schema v3 kann geklont werden.")
+        clone_slug = f"{slug}-custom"
+        if DisplayThemeVersion.objects.filter(
+            slug=clone_slug, version="1.0.0"
+        ).exists():
+            return HttpResponseBadRequest("Die editierbare Kopie existiert bereits.")
+        manifest["theme"].update(
+            {
+                "id": clone_slug,
+                "name": f"{manifest['theme']['name']} Custom",
+                "version": "1.0.0",
+            }
+        )
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("theme.json", json.dumps(manifest))
+            for asset in manifest["assets"].values():
+                archive.write(source.parent / asset["file"], asset["file"])
+        upload = SimpleUploadedFile(
+            f"{clone_slug}.zip", payload.getvalue(), content_type="application/zip"
+        )
+        try:
+            version = import_theme_package(upload, user=request.user)
+        except ThemeImportError as exc:
+            return HttpResponseBadRequest(str(exc))
+        messages.success(request, "Editierbare Theme-Kopie wurde erstellt.")
+        return redirect("core:theme_editor", pk=version.pk)
+
+    def _download_builtin(self, request):
+        slug = request.POST.get("slug", "")
+        if slug not in {theme["slug"] for theme in builtin_themes()}:
+            return HttpResponseBadRequest("Unknown builtin theme.")
+        source = _theme_path(slug)
+        manifest = json.loads(source.read_text(encoding="utf-8"))
+        return self._zip_theme(
+            f"{slug}-{manifest.get('theme', {}).get('version', 'builtin')}.zip",
+            manifest,
+            (
+                (asset["file"], (source.parent / asset["file"]).read_bytes())
+                for asset in manifest.get("assets", {}).values()
+            ),
+        )
+
+    def _download_version(self, request):
+        version = get_object_or_404(
+            DisplayThemeVersion.objects.prefetch_related("assets"),
+            pk=request.POST.get("version_id"),
+        )
+        return self._zip_theme(
+            f"{version.slug}-{version.version}.zip",
+            version.manifest,
+            (
+                (Path(asset.file.name).name, asset.file.read())
+                for asset in version.assets.all()
+            ),
+        )
+
+    @staticmethod
+    def _zip_theme(filename, manifest, assets):
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("theme.json", json.dumps(manifest, indent=2))
+            for asset_name, content in assets:
+                archive.writestr(asset_name, content)
+        response = HttpResponse(payload.getvalue(), content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
     def _activate_version(self, request):
         return DisplayThemeEditorView._activate_version(self, request)

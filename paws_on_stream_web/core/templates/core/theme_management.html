@@ -43,6 +43,8 @@
             <td>{% if theme.is_active %}<span class="badge text-bg-success">Aktiv</span>{% else %}<span class="badge text-bg-secondary">Fallback</span>{% endif %}</td>
             <td class="text-end">
               <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="activate-builtin"><input type="hidden" name="slug" value="{{ theme.slug }}"><button class="btn btn-sm btn-outline-success" type="submit">Aktivieren</button></form>
+              {% if theme.schema_version == 3 %}<form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="clone-builtin"><input type="hidden" name="slug" value="{{ theme.slug }}"><button class="btn btn-sm btn-outline-primary" type="submit">Kopie bearbeiten</button></form>{% endif %}
+              <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="download-builtin"><input type="hidden" name="slug" value="{{ theme.slug }}"><button class="btn btn-sm btn-outline-secondary" type="submit">ZIP</button></form>
             </td>
           </tr>
         {% endfor %}
@@ -54,6 +56,7 @@
             <td class="text-end text-nowrap">
               <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="activate-version"><input type="hidden" name="version_id" value="{{ version.pk }}"><button class="btn btn-sm btn-outline-success" type="submit">Aktivieren</button></form>
               <a class="btn btn-sm btn-outline-primary" href="{% url 'core:theme_editor' version.pk %}">Bearbeiten</a>
+              <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="download-version"><input type="hidden" name="version_id" value="{{ version.pk }}"><button class="btn btn-sm btn-outline-secondary" type="submit">ZIP</button></form>
               <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete-version"><input type="hidden" name="version_id" value="{{ version.pk }}"><button class="btn btn-sm btn-outline-danger" type="submit"{% if version.is_active %} disabled title="Aktive Versionen können nicht gelöscht werden"{% endif %}>Löschen</button></form>
             </td>
           </tr>
