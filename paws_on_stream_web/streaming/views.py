@@ -1,6 +1,7 @@
 import hashlib
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
+from uuid import UUID
 
 from core.auth import StaffRequiredMixin
 from core.models import DisplayDevice, DisplayLog, Settings
@@ -285,7 +286,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="display")
     def display_messages(self, request):
-        messages = Message.objects.filter(status="approved")
+        messages = Message.objects.filter(status="approved").order_by(
+            "created_at", "id"
+        )
 
         # Optional: filter by creation time
         since = request.query_params.get("since")
@@ -296,7 +299,21 @@ class MessageViewSet(viewsets.ModelViewSet):
                     {"since": ["A timezone-aware ISO datetime is required."]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            messages = messages.filter(created_at__gte=since_value)
+            after_id = request.query_params.get("after_id")
+            if after_id:
+                try:
+                    after_uuid = UUID(after_id)
+                except (TypeError, ValueError):
+                    return Response(
+                        {"after_id": ["A valid UUID is required."]},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                messages = messages.filter(
+                    Q(created_at__gt=since_value)
+                    | Q(created_at=since_value, id__gt=after_uuid)
+                )
+            else:
+                messages = messages.filter(created_at__gte=since_value)
 
         limit = request.query_params.get("limit")
         if limit:

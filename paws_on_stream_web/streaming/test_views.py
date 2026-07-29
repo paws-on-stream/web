@@ -218,6 +218,32 @@ class DisplayActionsThrottleExemptionTest(APITestCase):
         assert first.status_code == status.HTTP_200_OK
         assert second.status_code == status.HTTP_200_OK
 
+    def test_display_cursor_does_not_skip_equal_timestamps(self):
+        fixed_time = datetime(2026, 7, 29, 12, 0, tzinfo=UTC)
+        messages = TextMessageFactory.create_batch(
+            21,
+            participant=self.participant,
+            event=self.event,
+            status="approved",
+        )
+        for message in messages:
+            type(message).objects.filter(pk=message.pk).update(created_at=fixed_time)
+
+        first = self.client.get("/api/v1/messages/display/?limit=20")
+        assert first.status_code == status.HTTP_200_OK
+        first_results = first.json()["results"]
+        assert len(first_results) == 20
+
+        second = self.client.get(
+            "/api/v1/messages/display/",
+            {"since": fixed_time.isoformat(), "after_id": first_results[-1]["id"]},
+        )
+        assert second.status_code == status.HTTP_200_OK
+        expected_ids = {str(message.id) for message in [*messages, self.message]}
+        assert {item["id"] for item in second.json()["results"]} == (
+            expected_ids - {item["id"] for item in first_results}
+        )
+
     def test_mark_displayed_not_throttled(self):
         from core.models import DisplayLog
 
