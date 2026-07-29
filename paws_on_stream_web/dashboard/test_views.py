@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from participants.factories import ParticipantFactory
 from streaming.factories import EventFactory, TextMessageFactory
+from streaming.models import Message
 
 
 class DashboardViewTest(TestCase):
@@ -164,3 +165,27 @@ class DashboardViewTest(TestCase):
         )
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "message_id": str(self.message.pk)}
+
+    def test_admin_can_send_test_messages_for_every_media_type(self):
+        admin = get_user_model().objects.create_user(
+            "admin", is_staff=True, is_superuser=True
+        )
+        self.client.force_login(admin)
+
+        for media_type in ("text", "photo", "gif", "sticker"):
+            response = self.client.post("/test-message/", {"media_type": media_type})
+
+            assert response.status_code == 200
+            message = Message.objects.get(pk=response.json()["message_id"])
+            assert message.status == "approved"
+            assert message.media_type == media_type
+            if media_type == "text":
+                assert message.media_asset is None
+            else:
+                assert message.media_asset is not None
+                assert message.media_asset.format == "webp"
+
+    def test_test_message_endpoint_requires_admin(self):
+        response = self.client.post("/test-message/", {"media_type": "text"})
+
+        assert response.status_code == 403

@@ -1,18 +1,23 @@
 """Dashboard views for the Paws on Stream admin interface."""
 
+import hashlib
+import io
+import uuid
 from datetime import timedelta
 
 from core.models import DisplayDevice, Settings
+from django.core.files.base import ContentFile
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from participants.models import Participant
+from PIL import Image, ImageDraw
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from streaming.models import Event, Message
+from streaming.models import Event, MediaAsset, Message
 from streaming.serializers import MessageSerializer
 
 
@@ -35,6 +40,85 @@ def _apply_dashboard_message_action(message: Message, action: str) -> None:
         return
 
     raise ValueError(f"Unsupported dashboard action: {action}")
+
+
+def _create_test_media(media_type: str) -> MediaAsset:
+    """Create a small valid WebP asset for a display pipeline test."""
+    colors = {
+        "photo": (39, 130, 204, 255),
+        "gif": (143, 63, 191, 255),
+        "sticker": (26, 143, 92, 0),
+    }
+    image = Image.new("RGBA", (480, 270), colors[media_type])
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((16, 16, 464, 254), outline=(255, 255, 255, 255), width=6)
+    draw.text((42, 112), f"TEST {media_type.upper()}", fill=(255, 255, 255, 255))
+    payload = io.BytesIO()
+    animated = media_type == "gif"
+    if animated:
+        second = Image.new("RGBA", (480, 270), (236, 142, 34, 255))
+        second_draw = ImageDraw.Draw(second)
+        second_draw.text((42, 112), "TEST GIF", fill=(255, 255, 255, 255))
+        image.save(
+            payload,
+            format="WEBP",
+            save_all=True,
+            append_images=[second],
+            duration=500,
+            loop=0,
+            lossless=True,
+        )
+    else:
+        image.save(payload, format="WEBP", lossless=True)
+    identifier = uuid.uuid4().hex
+    asset = MediaAsset(
+        media_type=media_type,
+        telegram_file_id=f"admin-test-{identifier}",
+        telegram_file_unique_id=f"admin-test-{identifier}",
+        sticker_emoji="🐾" if media_type == "sticker" else "",
+        source_filename=f"admin-test-{media_type}.webp",
+        format="webp",
+        animated=animated,
+        width=480,
+        height=270,
+        duration_ms=1000 if animated else 0,
+        frame_count=2 if animated else 1,
+        has_alpha=media_type == "sticker",
+    )
+    content = payload.getvalue()
+    asset.sha256 = hashlib.sha256(content).hexdigest()
+    asset.file.save(f"admin-test-{identifier}.webp", ContentFile(content), save=False)
+    asset.save()
+    return asset
+
+
+@require_POST
+def dashboard_test_message(request):
+    """Inject an approved test message into the ordinary display queue."""
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return HttpResponseForbidden("Admin login required.")
+    media_type = request.POST.get("media_type", "")
+    if media_type not in {"text", "photo", "gif", "sticker"}:
+        return HttpResponseBadRequest("Unsupported test media type.")
+    participant, _ = Participant.objects.get_or_create(
+        telegram_id=0,
+        defaults={"display_name": "Display-Test", "checked_in": True},
+    )
+    now = timezone.now()
+    asset = _create_test_media(media_type) if media_type != "text" else None
+    labels = {"text": "Text", "photo": "Foto", "gif": "GIF", "sticker": "Sticker"}
+    message = Message.objects.create(
+        participant=participant,
+        content=f"Display-Testnachricht: {labels[media_type]}",
+        raw_content=f"Display-Testnachricht: {labels[media_type]}",
+        media_type=media_type,
+        media_asset=asset,
+        sticker_emoji="🐾" if media_type == "sticker" else "",
+        status="approved",
+        approved_at=now,
+        approved_by=request.user,
+    )
+    return JsonResponse({"status": "ok", "message_id": str(message.pk)})
 
 
 def dashboard(request):
