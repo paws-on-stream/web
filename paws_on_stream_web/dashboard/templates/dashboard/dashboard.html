@@ -8,7 +8,11 @@
     <div class="text-end"><span class="badge text-bg-success" id="dashboard-live-status">Live</span><div class="small text-muted" id="dashboard-updated-at">Lädt…</div></div>
   </div>
   <div class="d-flex gap-2 mb-3"><button class="btn btn-sm btn-outline-secondary" id="dashboard-refresh-toggle" type="button">Live-Aktualisierung: an</button><button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#dashboard-kpis" type="button">KPIs ein-/ausblenden</button></div>
-  <div class="toast-container position-fixed top-0 end-0 p-3" id="dashboard-toasts" aria-live="polite"></div>
+  <div id="dashboard-toasts" aria-live="polite" aria-atomic="true"></div>
+  <style>
+    #dashboard-toasts { display: grid; gap: .5rem; position: fixed; top: 4.5rem; right: 1rem; width: min(24rem, calc(100vw - 2rem)); z-index: 1080; }
+    .dashboard-notification { margin: 0; box-shadow: var(--bs-box-shadow); }
+  </style>
 
   <div class="row g-3 mb-4" id="dashboard-kpis">
     <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-muted">Wartend</div><div class="fs-2 fw-bold" id="kpi-pending">{{ kpis.0.value }}</div></div></div></div>
@@ -28,7 +32,7 @@
   (() => {
     const queue = document.querySelector('#moderation-queue'); const empty = document.querySelector('#moderation-empty'); const template = document.querySelector('#moderation-card-template');
     const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'; const refreshToggle = document.querySelector('#dashboard-refresh-toggle'); let selected = 0; let cards = []; let autoRefresh = localStorage.getItem('dashboard.autoRefresh') !== 'false'; let selectedId = localStorage.getItem('dashboard.selectedMessage');
-    const showToast = (message, variant = 'success') => { const toast = document.createElement('div'); toast.className = `toast show align-items-center text-bg-${variant} border-0`; toast.setAttribute('role', 'alert'); toast.innerHTML = `<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto"></button></div>`; toast.querySelector('.toast-body').textContent = message; toast.querySelector('button').addEventListener('click', () => toast.remove()); document.querySelector('#dashboard-toasts').append(toast); window.setTimeout(() => toast.remove(), 3500); };
+    const showToast = (message, variant = 'success') => { const notification = document.createElement('div'); notification.className = `alert alert-${variant} alert-dismissible dashboard-notification`; notification.setAttribute('role', 'status'); const content = document.createElement('span'); content.textContent = message; const close = document.createElement('button'); close.type = 'button'; close.className = 'btn-close'; close.setAttribute('aria-label', 'Schließen'); close.addEventListener('click', () => notification.remove()); notification.append(content, close); document.querySelector('#dashboard-toasts').append(notification); window.setTimeout(() => notification.remove(), 3500); };
     const updateRefreshToggle = () => { refreshToggle.textContent = `Live-Aktualisierung: ${autoRefresh ? 'an' : 'aus'}`; };
     const setText = (id, value) => { document.querySelector(id).textContent = value ?? '—'; };
     const selectCard = () => { cards.forEach((card, index) => card.classList.toggle('border-primary', index === selected)); const card = cards[selected]; if (card) { selectedId = card.dataset.messageId; localStorage.setItem('dashboard.selectedMessage', selectedId); card.focus({preventScroll:true}); } };
