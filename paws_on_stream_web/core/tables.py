@@ -14,6 +14,7 @@ class DisplayDeviceTable(tables.Table):
     hostname = tables.Column(linkify=True, order_by="hostname")
     is_active = tables.Column(order_by="is_active", verbose_name="Active")
     last_seen = tables.Column(order_by="last_seen", verbose_name="Last seen")
+    theme_cache_version = tables.Column(verbose_name="Theme cache")
 
     class Meta:
         model = DisplayDevice
@@ -24,6 +25,7 @@ class DisplayDeviceTable(tables.Table):
             "location",
             "is_active",
             "last_seen",
+            "theme_cache_version",
         )
         attrs = {"class": "table table-hover table-sm align-middle"}
 
@@ -47,6 +49,16 @@ class DisplayDeviceTable(tables.Table):
         if not value:
             return "—"
         return value.strftime("%d.%m.%Y %H:%M")
+
+    def render_theme_cache_version(self, record):
+        if not record.theme_cache_theme:
+            return "—"
+        return format_html(
+            "<code>{} {}</code><br><small>Reload #{}</small>",
+            record.theme_cache_theme,
+            record.theme_cache_version or "?",
+            record.theme_reload_generation,
+        )
 
 
 class DisplayLogTable(tables.Table):

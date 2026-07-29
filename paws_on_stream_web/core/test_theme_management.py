@@ -159,3 +159,22 @@ class ThemeManagementTest(TestCase):
         assert traversal.status_code == 200
         self.assertContains(traversal, "unsicheren Pfad")
         assert DisplayThemeVersion.objects.count() == 0
+
+    def test_admin_can_open_and_save_uploaded_theme_manifest(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            "/core/themes/", {"action": "upload", "package": theme_package()}
+        )
+        version = DisplayThemeVersion.objects.get(slug="uploaded-east")
+        editor_url = f"/core/themes/{version.pk}/edit/"
+        page = self.client.get(editor_url)
+        assert page.status_code == 200
+        self.assertContains(page, "theme.json")
+
+        response = self.client.post(
+            editor_url,
+            {"action": "save-manifest", "manifest": json.dumps(version.manifest)},
+        )
+        assert response.status_code == 302
+        version.refresh_from_db()
+        assert version.manifest["theme"]["id"] == "uploaded-east"

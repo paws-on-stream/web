@@ -27,6 +27,7 @@ class SettingsSerializer(serializers.ModelSerializer):
             "require_event_active",
             "display_mode",
             "scroll_speed_px",
+            "theme_reload_generation",
             "updated_at",
         ]
         read_only_fields = ["id", "updated_at"]
@@ -48,7 +49,11 @@ class DisplayDeviceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DisplayDevice
-        fields = ["id", "device_id", "hostname", "location", "is_active", "last_seen"]
+        fields = [
+            "id", "device_id", "hostname", "location", "is_active", "last_seen",
+            "theme_cache_theme", "theme_cache_version", "theme_reload_generation",
+            "theme_cache_updated_at",
+        ]
         read_only_fields = ["id"]
 
 

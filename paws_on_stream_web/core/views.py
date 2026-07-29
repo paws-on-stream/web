@@ -1,12 +1,18 @@
+import hashlib
+import json
+import tempfile
 from datetime import UTC, datetime
+from pathlib import Path
 
 from django.contrib import messages
+from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
 from django_tables2 import SingleTableView
+from PIL import Image, UnidentifiedImageError
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -23,6 +29,7 @@ from core.forms import (
 from core.models import (
     DisplayDevice,
     DisplayLog,
+    DisplayThemeAsset,
     DisplayThemeVersion,
     Settings,
     TelegramAccess,
@@ -35,7 +42,12 @@ from core.serializers import (
 )
 from core.tables import DisplayDeviceTable, DisplayLogTable
 from core.theme_import import ThemeImportError, import_theme_package
-from core.themes import builtin_themes, clear_theme_cache
+from core.themes import (
+    MAX_ASSET_BYTES,
+    _validate_v3_theme,
+    builtin_themes,
+    clear_theme_cache,
+)
 
 
 class SettingsViewSet(viewsets.GenericViewSet):
@@ -153,9 +165,14 @@ class DisplayDeviceViewSet(viewsets.ModelViewSet):
         update_fields = ["last_seen"]
         defaults = {
             k: request.data[k]
-            for k in ("hostname", "location", "is_active")
+            for k in (
+                "hostname", "location", "is_active", "theme_cache_theme",
+                "theme_cache_version", "theme_reload_generation",
+            )
             if k in request.data
         }
+        if "theme_cache_theme" in defaults or "theme_cache_version" in defaults:
+            defaults["theme_cache_updated_at"] = datetime.now(tz=UTC)
         update_fields.extend(defaults.keys())
         device, created = DisplayDevice.objects.update_or_create(
             device_id=device_id,
@@ -295,6 +312,8 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
             return self._activate_version(request)
         if action == "delete-version":
             return self._delete_version(request)
+        if action == "push-theme":
+            return self._push_theme(request)
         return HttpResponseBadRequest("Unsupported theme action.")
 
     def _upload(self, request):
@@ -310,6 +329,114 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
             return self.render_to_response(self.get_context_data(upload_form=form))
         messages.success(request, f"Theme {version} wurde sicher importiert.")
         return redirect("core:theme_management")
+
+    def _activate_builtin(self, request):
+        return DisplayThemeEditorView._activate_builtin(self, request)
+
+    def _activate_version(self, request):
+        return DisplayThemeEditorView._activate_version(self, request)
+
+    def _delete_version(self, request):
+        return DisplayThemeEditorView._delete_version(self, request)
+
+    def _push_theme(self, request):
+        return DisplayThemeEditorView._push_theme(self, request)
+
+
+class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
+    template_name = "core/theme_editor.html"
+
+    def get_object(self):
+        return get_object_or_404(
+            DisplayThemeVersion.objects.prefetch_related("assets"), pk=self.kwargs["pk"]
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        version = self.get_object()
+        context["theme_version"] = version
+        context["manifest_json"] = kwargs.get(
+            "manifest_json", json.dumps(version.manifest, indent=2, ensure_ascii=False)
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        version = self.get_object()
+        if version.is_current:
+            return HttpResponseBadRequest(
+                "Aktive Theme-Versionen dürfen nicht bearbeitet werden."
+            )
+        action = request.POST.get("action")
+        if action == "save-manifest":
+            return self._save_manifest(request, version)
+        if action == "upload-asset":
+            return self._upload_asset(request, version)
+        if action == "delete-asset":
+            asset = get_object_or_404(version.assets, pk=request.POST.get("asset_id"))
+            asset.delete()
+            messages.success(request, "Datei wurde entfernt.")
+            return redirect(request.path)
+        return HttpResponseBadRequest("Unsupported theme editor action.")
+
+    def _save_manifest(self, request, version):
+        raw = request.POST.get("manifest", "")
+        try:
+            manifest = json.loads(raw)
+            if not isinstance(manifest, dict):
+                raise ValueError("theme.json muss ein JSON-Objekt sein.")
+            metadata = manifest.get("theme", {})
+            if (
+                metadata.get("id") != version.slug
+                or metadata.get("version") != version.version
+            ):
+                raise ValueError(
+                    "ID und Version der Theme-Version dürfen nicht geändert werden."
+                )
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for asset in version.assets.all():
+                    (root / Path(asset.file.name).name).write_bytes(asset.file.read())
+                _validate_v3_theme(manifest, name=version.slug, base_dir=root)
+            asset_ids = set(version.assets.values_list("asset_id", flat=True))
+            if set(manifest["assets"]) != asset_ids:
+                raise ValueError(
+                    "Manifest und Dateimanager müssen dieselben Asset-IDs enthalten."
+                )
+        except (json.JSONDecodeError, OSError, ValueError) as exc:
+            messages.error(request, str(exc))
+            return self.render_to_response(self.get_context_data(manifest_json=raw))
+        version.manifest = manifest
+        version.name = manifest["theme"]["name"]
+        version.save(update_fields=("manifest", "name"))
+        clear_theme_cache()
+        messages.success(request, "theme.json wurde validiert und gespeichert.")
+        return redirect(request.path)
+
+    def _upload_asset(self, request, version):
+        upload = request.FILES.get("file")
+        asset_id = str(request.POST.get("asset_key", "")).strip().lower()
+        if not upload or not asset_id:
+            return HttpResponseBadRequest("Asset-ID und PNG-Datei sind erforderlich.")
+        payload = upload.read()
+        if len(payload) > MAX_ASSET_BYTES or not upload.name.lower().endswith(".png"):
+            return HttpResponseBadRequest("Nur PNG-Dateien bis 5 MB sind erlaubt.")
+        try:
+            with Image.open(__import__("io").BytesIO(payload)) as image:
+                image.verify()
+        except (OSError, UnidentifiedImageError):
+            return HttpResponseBadRequest("Die Datei ist kein gültiges PNG.")
+        asset, _ = DisplayThemeAsset.objects.get_or_create(
+            theme_version=version, asset_id=asset_id
+        )
+        asset.sha256 = hashlib.sha256(payload).hexdigest()
+        asset.size = len(payload)
+        asset.content_type = "image/png"
+        asset.file.save(Path(upload.name).name, ContentFile(payload), save=False)
+        asset.save()
+        messages.success(
+            request, "Datei hochgeladen. Passe jetzt die Metadaten in theme.json an."
+        )
+        return redirect(request.path)
 
     def _activate_builtin(self, request):
         slug = request.POST.get("slug", "")
@@ -364,6 +491,13 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
         version.delete()
         clear_theme_cache()
         messages.success(request, f"{label} wurde gelöscht.")
+        return redirect("core:theme_management")
+
+    def _push_theme(self, request):
+        settings = Settings.get_settings()
+        settings.theme_reload_generation += 1
+        settings.save(update_fields=("theme_reload_generation", "updated_at"))
+        messages.success(request, "Theme-Reload wurde an alle Displays gesendet.")
         return redirect("core:theme_management")
 
 

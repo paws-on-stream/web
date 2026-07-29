@@ -56,6 +56,7 @@ class Settings(models.Model):
         max_length=16, choices=DISPLAY_MODES, default="chat"
     )
     scroll_speed_px = models.IntegerField(default=3)
+    theme_reload_generation = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -80,6 +81,10 @@ class DisplayDevice(models.Model):
     location = models.CharField(max_length=64, default="", blank=True)
     is_active = models.BooleanField(default=True)
     last_seen = models.DateTimeField(null=True, blank=True)
+    theme_cache_theme = models.CharField(max_length=32, blank=True, default="")
+    theme_cache_version = models.CharField(max_length=32, blank=True, default="")
+    theme_reload_generation = models.PositiveIntegerField(default=0)
+    theme_cache_updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["device_id"]

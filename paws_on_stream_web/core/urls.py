@@ -6,6 +6,7 @@ from core.views import (
     DisplayDeviceListView,
     DisplayDeviceUpdateView,
     DisplayLogListView,
+    DisplayThemeEditorView,
     DisplayThemeManagementView,
     SettingsUpdateView,
     SettingsView,
@@ -48,4 +49,9 @@ urlpatterns = [
     ),
     path("web-display/", WebDisplayAccessView.as_view(), name="web_display_access"),
     path("themes/", DisplayThemeManagementView.as_view(), name="theme_management"),
+    path(
+        "themes/<int:pk>/edit/",
+        DisplayThemeEditorView.as_view(),
+        name="theme_editor",
+    ),
 ]
