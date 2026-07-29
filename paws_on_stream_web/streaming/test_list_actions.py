@@ -31,7 +31,11 @@ class MessageListActionHardeningTest(TestCase):
     def test_deletes_selected_messages(self):
         response = self.client.post(
             "/streaming/messages/",
-            {"action": "delete", "select": [str(self.message.id)]},
+            {
+                "action": "delete",
+                "confirmed": "yes",
+                "select": [str(self.message.id)],
+            },
         )
         assert response.status_code == 302
         assert response.headers["Location"].endswith("/streaming/messages/")
@@ -40,12 +44,41 @@ class MessageListActionHardeningTest(TestCase):
     def test_rejects_selected_messages_as_spam(self):
         response = self.client.post(
             "/streaming/messages/",
-            {"action": "reject_spam", "select": [str(self.message.id)]},
+            {
+                "action": "reject_spam",
+                "confirmed": "yes",
+                "select": [str(self.message.id)],
+            },
         )
         assert response.status_code == 302
         self.message.refresh_from_db()
         assert self.message.status == "rejected"
         assert self.message.rejection_reason == "spam"
+
+    def test_requires_confirmation_before_bulk_action(self):
+        response = self.client.post(
+            "/streaming/messages/",
+            {"action": "reject_nsfw", "select": [str(self.message.id)]},
+        )
+
+        assert response.status_code == 200
+        self.message.refresh_from_db()
+        assert self.message.status == "pending"
+        assert "Moderationsaktion bestätigen" in response.content.decode()
+
+    def test_rejects_selected_messages_with_manual_reason(self):
+        response = self.client.post(
+            "/streaming/messages/",
+            {
+                "action": "reject_nsfw",
+                "confirmed": "yes",
+                "select": [str(self.message.id)],
+            },
+        )
+
+        assert response.status_code == 302
+        self.message.refresh_from_db()
+        assert self.message.rejection_reason == "nsfw"
 
 
 class EventListActionHardeningTest(TestCase):

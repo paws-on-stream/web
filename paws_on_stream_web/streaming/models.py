@@ -152,6 +152,10 @@ class Message(models.Model):
         ("rate_limit", "Rate limited"),
         ("offline", "Bot offline"),
         ("spam", "Spam"),
+        ("inappropriate", "Unpassend"),
+        ("duplicate", "Duplikat"),
+        ("nsfw", "NSFW"),
+        ("moderator_other", "Sonstiger Moderationsgrund"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

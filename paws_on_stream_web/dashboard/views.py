@@ -30,7 +30,7 @@ def _apply_dashboard_message_action(message: Message, action: str) -> None:
         if message.status != "pending":
             raise ValueError("Only pending messages can be rejected.")
         message.status = "rejected"
-        message.rejection_reason = "unknown"
+        message.rejection_reason = "moderator_other"
         message.save(update_fields=["status", "rejection_reason"])
         return
 

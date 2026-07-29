@@ -22,7 +22,7 @@ class MessageTableTest(TestCase):
     def test_high_spam_score_is_highlighted(self):
         self.message.spam_score = 0.7
         html = MessageTable([self.message], spam_threshold=0.7).as_html(self.request)
-        assert "badge bg-warning text-dark" in html
+        assert "badge bg-danger" in html
         assert "0.70" in html
 
 

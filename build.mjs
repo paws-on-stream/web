@@ -52,4 +52,14 @@ console.log("📦 Copying Bootstrap Icons fonts...");
 
 fs.copySync(ICONS_SRC, ICONS_DEST);
 
+const CODEMIRROR_SRC = path.join(ROOT, "node_modules/codemirror");
+const CODEMIRROR_DEST = path.join(
+  ROOT,
+  "paws_on_stream_web/static/vendor/codemirror"
+);
+
+console.log("📦 Copying CodeMirror editor assets...");
+fs.copySync(path.join(CODEMIRROR_SRC, "lib"), path.join(CODEMIRROR_DEST, "lib"));
+fs.copySync(path.join(CODEMIRROR_SRC, "mode/javascript"), path.join(CODEMIRROR_DEST, "mode/javascript"));
+
 console.log("✅ Build complete");

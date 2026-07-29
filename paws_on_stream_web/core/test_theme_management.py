@@ -178,3 +178,20 @@ class ThemeManagementTest(TestCase):
         assert response.status_code == 302
         version.refresh_from_db()
         assert version.manifest["theme"]["id"] == "uploaded-east"
+
+    def test_admin_can_preview_saved_theme_in_both_display_modes(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            "/core/themes/", {"action": "upload", "package": theme_package()}
+        )
+        version = DisplayThemeVersion.objects.get(slug="uploaded-east")
+
+        page = self.client.get(f"/core/themes/{version.pk}/preview/")
+
+        assert page.status_code == 200
+        self.assertContains(page, "Bubble")
+        self.assertContains(page, "Crawling")
+        asset = self.client.get(
+            f"/core/themes/{version.pk}/preview/assets/frame/"
+        )
+        assert asset.status_code == 200

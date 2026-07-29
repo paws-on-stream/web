@@ -42,6 +42,21 @@
           </select>
         </div>
         <div class="col-md-2">
+          <label for="event" class="form-label">Event</label>
+          <select id="event" name="event" class="form-select form-select-sm">
+            <option value="all">Alle</option>
+            {% for event in events %}<option value="{{ event.pk }}" {% if filters.event == event.pk|stringformat:"s" %}selected{% endif %}>{{ event.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="spam" class="form-label">Spam-Score</label>
+          <select id="spam" name="spam" class="form-select form-select-sm">
+            <option value="all" {% if filters.spam == "all" %}selected{% endif %}>Alle</option>
+            <option value="warning" {% if filters.spam == "warning" %}selected{% endif %}>Warnung (ab 0,50)</option>
+            <option value="high" {% if filters.spam == "high" %}selected{% endif %}>Hoch</option>
+          </select>
+        </div>
+        <div class="col-md-2">
           <label for="media_type" class="form-label">Medientyp</label>
           <select id="media_type" name="media_type" class="form-select form-select-sm">
             <option value="all" {% if filters.media_type == "all" %}selected{% endif %}>Alle</option>
@@ -63,13 +78,17 @@
     <div class="card-body p-0">
       <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="return_query" value="{{ request.GET.urlencode }}">
         <div class="bulk-action-bar">
           <label for="message-bulk-action">Mehrfachaktion</label>
           <select id="message-bulk-action" name="action" class="form-select form-select-sm">
             <option value="">— Aktion auswählen —</option>
             <option value="approve">Ausgewählte freigeben</option>
-            <option value="reject">Ausgewählte ablehnen</option>
+            <option value="reject">Ausgewählte ablehnen (Sonstiges)</option>
             <option value="reject_spam">Ausgewählte als Spam ablehnen</option>
+            <option value="reject_inappropriate">Ausgewählte als unpassend ablehnen</option>
+            <option value="reject_duplicate">Ausgewählte als Duplikat ablehnen</option>
+            <option value="reject_nsfw">Ausgewählte als NSFW ablehnen</option>
             <option value="delete">Ausgewählte löschen</option>
           </select>
           <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>

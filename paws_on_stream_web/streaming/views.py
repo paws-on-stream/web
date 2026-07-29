@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import F, Q
 from django.http import FileResponse, Http404, HttpResponseBadRequest
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -469,6 +469,17 @@ class MessageListView(StaffRequiredMixin, SingleTableView):
         if media_filter in {"text", "photo", "gif", "sticker"}:
             queryset = queryset.filter(media_type=media_filter)
 
+        event_filter = self.request.GET.get("event", "all")
+        if event_filter.isdigit():
+            queryset = queryset.filter(event_id=int(event_filter))
+
+        spam_filter = self.request.GET.get("spam", "all")
+        threshold = Settings.get_settings().spam_threshold
+        if spam_filter == "warning":
+            queryset = queryset.filter(spam_score__gte=0.5, spam_score__lt=threshold)
+        elif spam_filter == "high":
+            queryset = queryset.filter(spam_score__gte=threshold)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -477,13 +488,19 @@ class MessageListView(StaffRequiredMixin, SingleTableView):
             "q": self.request.GET.get("q", "").strip(),
             "status": self.request.GET.get("status", "all"),
             "media_type": self.request.GET.get("media_type", "all"),
+            "event": self.request.GET.get("event", "all"),
+            "spam": self.request.GET.get("spam", "all"),
         }
+        context["events"] = Event.objects.order_by("-starts_at")
         return context
 
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
         selected = request.POST.getlist("select")  # from checkbox column
-        allowed_actions = {"approve", "reject", "reject_spam", "delete"}
+        allowed_actions = {
+            "approve", "reject", "reject_spam", "reject_inappropriate",
+            "reject_duplicate", "reject_nsfw", "delete",
+        }
         if action not in allowed_actions:
             messages.error(request, "Bitte eine gültige Aktion auswählen.")
             return redirect("streaming:message_list")
@@ -491,20 +508,46 @@ class MessageListView(StaffRequiredMixin, SingleTableView):
             messages.warning(request, "Bitte mindestens eine Nachricht auswählen.")
             return redirect("streaming:message_list")
 
+        if request.POST.get("confirmed") != "yes":
+            selected_messages = Message.objects.filter(id__in=selected)
+            return render(
+                request,
+                "streaming/message_bulk_confirm.html",
+                {
+                    "action": action,
+                    "selected": selected,
+                    "message_count": selected_messages.count(),
+                    "return_query": request.POST.get("return_query", ""),
+                },
+            )
+
         selected_messages = Message.objects.filter(id__in=selected)
+        redirect_url = reverse("streaming:message_list")
+        if request.POST.get("return_query"):
+            redirect_url += f"?{request.POST['return_query']}"
 
         if action == "approve":
-            selected_messages.update(status="approved", approved_at=timezone.now())
-            messages.success(request, "Ausgewählte Nachrichten wurden freigegeben.")
-        elif action in {"reject", "reject_spam"}:
-            reason = "spam" if action == "reject_spam" else "unknown"
-            selected_messages.update(status="rejected", rejection_reason=reason)
-            messages.success(request, "Ausgewählte Nachrichten wurden abgelehnt.")
+            updated = selected_messages.filter(status="pending").update(
+                status="approved", approved_at=timezone.now()
+            )
+            messages.success(request, f"{updated} Nachrichten wurden freigegeben.")
+        elif action != "delete":
+            reason = {
+                "reject": "moderator_other",
+                "reject_spam": "spam",
+                "reject_inappropriate": "inappropriate",
+                "reject_duplicate": "duplicate",
+                "reject_nsfw": "nsfw",
+            }[action]
+            updated = selected_messages.filter(status="pending").update(
+                status="rejected", rejection_reason=reason
+            )
+            messages.success(request, f"{updated} Nachrichten wurden abgelehnt.")
         else:
-            selected_messages.delete()
-            messages.success(request, "Ausgewählte Nachrichten wurden gelöscht.")
+            deleted, _ = selected_messages.delete()
+            messages.success(request, f"{deleted} Nachrichten wurden gelöscht.")
 
-        return redirect("streaming:message_list")
+        return redirect(redirect_url)
 
     def get_table_kwargs(self):
         return {"spam_threshold": Settings.get_settings().spam_threshold}
@@ -534,7 +577,7 @@ class MessageDetailView(StaffRequiredMixin, DetailView):
             if self.object.status == "pending":
                 self.object.status = "rejected"
                 self.object.rejection_reason = (
-                    "spam" if action == "reject_spam" else "unknown"
+                    "spam" if action == "reject_spam" else "moderator_other"
                 )
                 self.object.save(update_fields=["status", "rejection_reason"])
             return redirect(self.object.get_absolute_url())

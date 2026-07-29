@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Moderationsaktion bestätigen — Paws on Stream{% endblock %}
+
+{% block content %}
+  <div class="card mx-auto" style="max-width: 42rem">
+    <div class="card-body">
+      <h1 class="h3">Moderationsaktion bestätigen</h1>
+      <p>Die Aktion <strong>{{ action }}</strong> wird auf <strong>{{ message_count }}</strong> ausgewählte Nachrichten angewendet.</p>
+      <p class="text-muted small">Statusänderungen betreffen nur noch wartende Nachrichten.</p>
+      <form method="post" class="d-flex gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="{{ action }}">
+        <input type="hidden" name="confirmed" value="yes">
+        <input type="hidden" name="return_query" value="{{ return_query }}">
+        {% for message_id in selected %}<input type="hidden" name="select" value="{{ message_id }}">{% endfor %}
+        <button class="btn btn-primary" type="submit">Jetzt ausführen</button>
+        <a class="btn btn-outline-secondary" href="{% url 'streaming:message_list' %}{% if return_query %}?{{ return_query }}{% endif %}">Abbrechen</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

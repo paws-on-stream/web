@@ -8,6 +8,8 @@ from core.views import (
     DisplayLogListView,
     DisplayThemeEditorView,
     DisplayThemeManagementView,
+    DisplayThemePreviewAssetView,
+    DisplayThemePreviewView,
     SettingsUpdateView,
     SettingsView,
     TelegramAccessListView,
@@ -53,5 +55,15 @@ urlpatterns = [
         "themes/<int:pk>/edit/",
         DisplayThemeEditorView.as_view(),
         name="theme_editor",
+    ),
+    path(
+        "themes/<int:pk>/preview/",
+        DisplayThemePreviewView.as_view(),
+        name="theme_preview",
+    ),
+    path(
+        "themes/<int:pk>/preview/assets/<slug:asset_id>/",
+        DisplayThemePreviewAssetView.as_view(),
+        name="theme_preview_asset",
     ),
 ]

@@ -36,6 +36,18 @@
             <dt>Updated</dt>
             <dd>{{ object.last_seen|date:"d.m.Y H:i"|default:"-" }}</dd>
           </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Theme Cache</dt>
+            <dd><code>{{ object.theme_cache_theme|default:"-" }} {{ object.theme_cache_version|default:"" }}</code></dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Reload</dt>
+            <dd>#{{ object.theme_reload_generation }}{% if theme_status.is_pending %} <span class="badge text-bg-warning">ausstehend</span>{% endif %}</dd>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <dt>Soll-Theme</dt>
+            <dd><code>{{ theme_status.desired_theme }}</code> · #{{ theme_status.desired_generation }}</dd>
+          </div>
         </dl>
       </div>
     </div>

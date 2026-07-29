@@ -42,7 +42,7 @@ class DashboardViewTest(TestCase):
         assert response.status_code == 302
         self.message.refresh_from_db()
         assert self.message.status == "rejected"
-        assert self.message.rejection_reason == "unknown"
+        assert self.message.rejection_reason == "moderator_other"
 
     def test_missing_action_returns_400(self):
         response = self.client.post("/", {"message_id": self.message.pk})

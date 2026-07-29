@@ -10,9 +10,15 @@ from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection, transaction
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import (
+    FileResponse,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseNotFound,
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
 from django_tables2 import SingleTableView
 from PIL import Image, UnidentifiedImageError
@@ -175,7 +181,14 @@ class DisplayDeviceViewSet(viewsets.ModelViewSet):
             )
             if k in request.data
         }
-        if "theme_cache_theme" in defaults or "theme_cache_version" in defaults:
+        if any(
+            key in defaults
+            for key in (
+                "theme_cache_theme",
+                "theme_cache_version",
+                "theme_reload_generation",
+            )
+        ):
             defaults["theme_cache_updated_at"] = datetime.now(tz=UTC)
         update_fields.extend(defaults.keys())
         device, created = DisplayDevice.objects.update_or_create(
@@ -341,7 +354,7 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
         return redirect("core:theme_management")
 
     def _activate_builtin(self, request):
-        return DisplayThemeEditorView._activate_builtin(self, request)
+        return DisplayThemePreviewAssetView._activate_builtin(self, request)
 
     def _clone_builtin(self, request):
         slug = request.POST.get("slug", "")
@@ -419,13 +432,13 @@ class DisplayThemeManagementView(AdminRequiredMixin, TemplateView):
         return response
 
     def _activate_version(self, request):
-        return DisplayThemeEditorView._activate_version(self, request)
+        return DisplayThemePreviewAssetView._activate_version(self, request)
 
     def _delete_version(self, request):
-        return DisplayThemeEditorView._delete_version(self, request)
+        return DisplayThemePreviewAssetView._delete_version(self, request)
 
     def _push_theme(self, request):
-        return DisplayThemeEditorView._push_theme(self, request)
+        return DisplayThemePreviewAssetView._push_theme(self, request)
 
 
 class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
@@ -522,6 +535,42 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
             request, "Datei hochgeladen. Passe jetzt die Metadaten in theme.json an."
         )
         return redirect(request.path)
+
+
+class DisplayThemePreviewView(AdminRequiredMixin, TemplateView):
+    """Render a saved uploaded theme without changing the active theme."""
+
+    template_name = "core/theme_preview.html"
+
+    def get_object(self):
+        return get_object_or_404(
+            DisplayThemeVersion.objects.prefetch_related("assets"), pk=self.kwargs["pk"]
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        version = self.get_object()
+        manifest = json.loads(json.dumps(version.manifest))
+        for asset_id, asset in manifest.get("assets", {}).items():
+            asset["url"] = reverse(
+                "core:theme_preview_asset",
+                kwargs={"pk": version.pk, "asset_id": asset_id},
+            )
+        context["theme_version"] = version
+        context["theme_json"] = manifest
+        return context
+
+
+class DisplayThemePreviewAssetView(AdminRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        asset = get_object_or_404(
+            DisplayThemeAsset,
+            theme_version_id=kwargs["pk"],
+            asset_id=kwargs["asset_id"],
+        )
+        if not asset.file:
+            return HttpResponseNotFound("Theme asset missing.")
+        return FileResponse(asset.file.open("rb"), content_type=asset.content_type)
 
     def _activate_builtin(self, request):
         slug = request.POST.get("slug", "")
@@ -654,7 +703,23 @@ class DisplayDeviceDetailView(StaffRequiredMixin, DetailView):
                 "variant": "success" if d.is_active else "secondary",
             }
         ]
+        if not d.last_seen:
+            connection_status, variant = "Nie verbunden", "danger"
+        else:
+            age_seconds = (timezone.now() - d.last_seen).total_seconds()
+            connection_status, variant = (
+                ("Online", "success") if age_seconds <= 60
+                else ("Veraltet", "warning") if age_seconds <= 300
+                else ("Offline", "danger")
+            )
+        badges.append({"label": connection_status, "variant": variant})
         ctx["badges"] = badges
+        settings = Settings.get_settings()
+        ctx["theme_status"] = {
+            "desired_theme": settings.overlay_theme,
+            "desired_generation": settings.theme_reload_generation,
+            "is_pending": d.theme_reload_generation < settings.theme_reload_generation,
+        }
 
         ctx["recent_logs"] = DisplayLog.objects.filter(device=d).order_by(
             "-displayed_at"

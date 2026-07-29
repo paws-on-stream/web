@@ -1,9 +1,10 @@
 """django-tables2 definitions for the core app."""
 
 import django_tables2 as tables
+from django.utils import timezone
 from django.utils.html import format_html
 
-from core.models import DisplayDevice, DisplayLog
+from core.models import DisplayDevice, DisplayLog, Settings
 
 
 class DisplayDeviceTable(tables.Table):
@@ -47,17 +48,43 @@ class DisplayDeviceTable(tables.Table):
 
     def render_last_seen(self, value):
         if not value:
-            return "—"
-        return value.strftime("%d.%m.%Y %H:%M")
+            return format_html(
+                '<span class="badge text-bg-danger">Nie verbunden</span>'
+            )
+        age_seconds = (timezone.now() - value).total_seconds()
+        if age_seconds <= 60:
+            status, variant = "Online", "success"
+        elif age_seconds <= 300:
+            status, variant = "Veraltet", "warning"
+        else:
+            status, variant = "Offline", "danger"
+        return format_html(
+            '<span class="badge text-bg-{}">{}</span><br><small>{}</small>',
+            variant,
+            status,
+            value.strftime("%d.%m.%Y %H:%M:%S"),
+        )
 
     def render_theme_cache_version(self, record):
         if not record.theme_cache_theme:
             return "—"
+        settings = Settings.get_settings()
+        if record.theme_reload_generation < settings.theme_reload_generation:
+            sync_status, variant = "Reload ausstehend", "warning"
+        elif record.theme_cache_theme != settings.overlay_theme:
+            sync_status, variant = "Theme abweichend", "danger"
+        else:
+            sync_status, variant = "Aktuell", "success"
         return format_html(
-            "<code>{} {}</code><br><small>Reload #{}</small>",
+            (
+                '<code>{} {}</code><br><small>Reload #{}</small><br>'
+                '<span class="badge text-bg-{}">{}</span>'
+            ),
             record.theme_cache_theme,
             record.theme_cache_version or "?",
             record.theme_reload_generation,
+            variant,
+            sync_status,
         )
 
 

@@ -1,6 +1,9 @@
 """django-tables2 definitions for the streaming app."""
 
+from datetime import timedelta
+
 import django_tables2 as tables
+from django.utils import timezone
 from django.utils.html import format_html
 
 from streaming.models import Event, Message
@@ -91,7 +94,12 @@ class MessageTable(tables.Table):
         )
 
     def render_spam_score(self, value):
-        variant = "warning text-dark" if value >= self.spam_threshold else "secondary"
+        if value >= self.spam_threshold:
+            variant = "danger"
+        elif value >= 0.5:
+            variant = "warning text-dark"
+        else:
+            variant = "secondary"
         return format_html(
             '<span class="badge bg-{}">{}</span>', variant, f"{value:.2f}"
         )
@@ -110,8 +118,14 @@ class MessageTable(tables.Table):
             label,
         )
 
-    def render_created_at(self, value):
-        return value.strftime("%d.%m.%Y %H:%M")
+    def render_created_at(self, value, record):
+        age = timezone.now() - value
+        label = value.strftime("%d.%m.%Y %H:%M")
+        if record.status == "pending" and age >= timedelta(minutes=10):
+            return format_html(
+                '<span class="text-warning-emphasis fw-semibold">{}</span>', label
+            )
+        return label
 
 
 class EventTable(tables.Table):
