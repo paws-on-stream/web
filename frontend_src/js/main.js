@@ -214,11 +214,34 @@ if (monitorRoot) {
       stage.replaceChildren();
       rendering = false;
       renderNext();
+    } else if (!rendering && queue.length === 0) {
+      renderPersistentTicker();
     }
   }
 
+  function renderPersistentTicker() {
+    const shouldShow = settings.display_mode === "crawling"
+      && activeTheme?.ticker?.always_visible === true
+      && !rendering
+      && queue.length === 0;
+    const existing = stage.querySelector("[data-persistent-ticker]");
+    if (!shouldShow) {
+      if (existing) stage.replaceChildren();
+      return;
+    }
+    if (existing) return;
+    const ticker = document.createElement("article");
+    ticker.className = "web-display-ticker";
+    ticker.dataset.persistentTicker = "true";
+    stage.replaceChildren(ticker);
+  }
+
   function renderNext() {
-    if (rendering || queue.length === 0) return;
+    if (rendering) return;
+    if (queue.length === 0) {
+      renderPersistentTicker();
+      return;
+    }
     rendering = true;
     const message = queue.shift();
     queuedIds.delete(message.id);

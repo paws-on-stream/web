@@ -145,6 +145,7 @@ class PublicWebDisplayTest(TestCase):
 
         assert payload["theme"]["ticker"]["width"] == -80
         assert payload["theme"]["ticker"]["scale"] == 0.6
+        assert payload["theme"]["ticker"]["always_visible"] is True
 
     def test_feed_applies_event_display_overrides_when_messages_are_disabled(self):
         now = timezone.now()

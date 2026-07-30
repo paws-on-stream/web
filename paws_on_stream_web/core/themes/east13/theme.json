@@ -141,6 +141,7 @@
     }
   },
   "ticker": {
+    "always_visible": true,
     "position": {
       "x": 40,
       "y": -120,

@@ -120,6 +120,10 @@ def _validate_v3_theme(theme, *, name, base_dir):
         if element.get("style") not in styles:
             raise ValueError("Unknown chat template style.")
 
+    ticker = theme["ticker"]
+    if "always_visible" in ticker and not isinstance(ticker["always_visible"], bool):
+        raise ValueError("Ticker always_visible must be a boolean.")
+
     background = chat.get("background")
     frame = background.get("frame") if isinstance(background, dict) else None
     if not isinstance(frame, dict) or frame.get("type") != "segmented_vertical":
