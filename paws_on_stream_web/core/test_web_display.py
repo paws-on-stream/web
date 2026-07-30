@@ -138,6 +138,14 @@ class PublicWebDisplayTest(TestCase):
             "http://testserver/monitor/themes/east13/3.0.0/assets/chat_top/"
         )
 
+    def test_east_theme_exposes_scaled_crawling_configuration(self):
+        self._authorize()
+
+        payload = self.client.get("/monitor/feed/").json()
+
+        assert payload["theme"]["ticker"]["width"] == -80
+        assert payload["theme"]["ticker"]["scale"] == 0.6
+
     def test_feed_applies_event_display_overrides_when_messages_are_disabled(self):
         now = timezone.now()
         EventFactory(

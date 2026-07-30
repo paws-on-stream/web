@@ -183,17 +183,18 @@ if (monitorRoot) {
     root.setProperty("--web-display-frame-top", safeAssetUrl(theme?.assets?.[chatBackground.frame?.top]?.url));
     root.setProperty("--web-display-frame-middle", safeAssetUrl(theme?.assets?.[chatBackground.frame?.middle]?.url));
     root.setProperty("--web-display-frame-bottom", safeAssetUrl(theme?.assets?.[chatBackground.frame?.bottom]?.url));
-    root.setProperty("--web-display-ticker-scale", boundedNumber(ticker.scale, 1, 0.1, 2));
+    const tickerScale = boundedNumber(ticker.scale, 1, 0.1, 2);
+    root.setProperty("--web-display-ticker-scale", tickerScale);
     root.setProperty("--web-display-ticker-x", `${boundedNumber(ticker.position?.x, 32, -1920, 1920)}px`);
     const tickerY = boundedNumber(ticker.position?.y, -104, -1080, 1080);
     root.setProperty("--web-display-ticker-y", `${Math.abs(tickerY)}px`);
     const tickerWidth = Number(ticker.width);
-    root.setProperty(
-      "--web-display-ticker-width",
-      tickerWidth < 0
-        ? `calc(100vw - ${Math.abs(tickerWidth)}px)`
-        : `${boundedNumber(tickerWidth, 1200, 120, 1920)}px`,
-    );
+    const logicalWidth = tickerWidth < 0
+      ? window.innerWidth - Math.abs(tickerWidth)
+      : boundedNumber(tickerWidth, 1200, 120, 1920);
+    // CSS transforms scale the rendered width but not its layout position. Expand
+    // the layout width first so a scaled ticker still reaches its configured edge.
+    root.setProperty("--web-display-ticker-width", `${logicalWidth / tickerScale}px`);
   }
 
   function applySettings(next, theme) {
