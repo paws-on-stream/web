@@ -53,7 +53,7 @@
   <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6 text-white" href="#">Paws on Stream</a>
   <div class="ms-auto d-flex align-items-center">
     {% if request.user.is_authenticated and request.user.is_staff %}
-      <a class="btn btn-sm btn-outline-light me-2" href="{% url 'web_display' %}" target="_blank" rel="noopener noreferrer" title="Web Display öffnen">
+      <a class="btn btn-sm btn-outline-light me-2" href="{% url 'web_display' %}" title="Web Display öffnen">
         <i class="bi bi-display" aria-hidden="true"></i>
         <span class="d-none d-sm-inline ms-1">Web Display öffnen</span>
       </a>

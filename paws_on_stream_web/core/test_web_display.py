@@ -39,6 +39,7 @@ class WebDisplayManagementTest(TestCase):
         dashboard = self.client.get("/")
         assert dashboard.status_code == 200
         self.assertContains(dashboard, 'href="/monitor/"')
+        assert 'target="_blank"' not in dashboard.content.decode()
         assert self.client.get("/monitor/").status_code == 200
         assert self.client.get("/monitor/feed/").status_code == 200
 
