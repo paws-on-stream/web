@@ -77,12 +77,12 @@ class ApiRoleTest(TestCase):
             "transparent_output": True,
         }
         assert payload["assets"]["chat_top"]["url"].startswith(
-            "http://testserver/api/v1/themes/east13/3.0.0/assets/chat_top/"
+            "http://testserver/api/v1/themes/east13/3.0.1/assets/chat_top/"
         )
 
     def test_display_token_can_fetch_verified_theme_asset(self):
         response = self.client.get(
-            "/api/v1/themes/east13/3.0.0/assets/chat_bottom/",
+            "/api/v1/themes/east13/3.0.1/assets/chat_bottom/",
             HTTP_X_API_TOKEN="display-token",
         )
         assert response.status_code == 200
@@ -95,7 +95,7 @@ class ApiRoleTest(TestCase):
 
     def test_bot_token_cannot_fetch_theme_assets(self):
         response = self.client.get(
-            "/api/v1/themes/east13/3.0.0/assets/chat_top/",
+            "/api/v1/themes/east13/3.0.1/assets/chat_top/",
             HTTP_X_API_TOKEN="bot-token",
         )
         assert response.status_code == 403

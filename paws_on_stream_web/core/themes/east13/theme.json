@@ -3,7 +3,7 @@
   "theme": {
     "id": "east13",
     "name": "EAST 13",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "description": "Lossless migration of the EAST Pygame theme",
     "reference_renderer": "pygame"
   },
@@ -149,7 +149,12 @@
     },
     "width": -80,
     "scale": 0.6,
-    "background": {"type": "color", "color": "#1f2b3a"},
+    "background": {
+      "type": "color",
+      "color": "#1f2b3a",
+      "border": {"color": "#38bdf8", "width": 2, "radius": 19},
+      "shadow": {"color": "#000000", "opacity": 0.35, "offset_x": 0, "offset_y": 12, "blur": 32}
+    },
     "text": {
       "color": "#ffffff",
       "font_size": 24,

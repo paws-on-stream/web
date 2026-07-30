@@ -135,7 +135,7 @@ class PublicWebDisplayTest(TestCase):
             == "segmented_vertical"
         )
         assert payload["theme"]["assets"]["chat_top"]["url"].startswith(
-            "http://testserver/monitor/themes/east13/3.0.0/assets/chat_top/"
+            "http://testserver/monitor/themes/east13/3.0.1/assets/chat_top/"
         )
 
     def test_east_theme_exposes_scaled_crawling_configuration(self):
@@ -146,6 +146,19 @@ class PublicWebDisplayTest(TestCase):
         assert payload["theme"]["ticker"]["width"] == -80
         assert payload["theme"]["ticker"]["scale"] == 0.6
         assert payload["theme"]["ticker"]["always_visible"] is True
+        assert payload["theme"]["theme"]["version"] == "3.0.1"
+        assert payload["theme"]["ticker"]["background"] == {
+            "type": "color",
+            "color": "#1f2b3a",
+            "border": {"color": "#38bdf8", "width": 2, "radius": 19},
+            "shadow": {
+                "color": "#000000",
+                "opacity": 0.35,
+                "offset_x": 0,
+                "offset_y": 12,
+                "blur": 32,
+            },
+        }
 
     def test_feed_applies_event_display_overrides_when_messages_are_disabled(self):
         now = timezone.now()
@@ -165,7 +178,7 @@ class PublicWebDisplayTest(TestCase):
         assert payload["settings"]["scroll_speed_px"] == 9
 
     def test_monitor_theme_asset_requires_access_and_returns_original_png(self):
-        url = "/monitor/themes/east13/3.0.0/assets/chat_top/"
+        url = "/monitor/themes/east13/3.0.1/assets/chat_top/"
         assert self.client.get(url).status_code == 401
         self._authorize()
 

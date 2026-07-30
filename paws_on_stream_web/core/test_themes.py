@@ -111,3 +111,85 @@ class ThemeValidationTest(TestCase):
                 self.assertRaisesRegex(ValueError, "template field"),
             ):
                 themes.get_display_theme("test-theme", fallback=False)
+
+    def test_invalid_ticker_border_and_shadow_values_are_rejected(self):
+        invalid_appearances = (
+            (
+                "border color",
+                {"background": {"border": {"color": "blue", "width": 2, "radius": 4}}},
+                "border color",
+            ),
+            (
+                "border width",
+                {
+                    "background": {
+                        "border": {"color": "#38bdf8", "width": -1, "radius": 4}
+                    }
+                },
+                "border width",
+            ),
+            (
+                "border radius",
+                {
+                    "background": {
+                        "border": {"color": "#38bdf8", "width": 2, "radius": 513}
+                    }
+                },
+                "border radius",
+            ),
+            (
+                "shadow opacity",
+                {
+                    "background": {
+                        "shadow": {
+                            "color": "#000000",
+                            "opacity": 1.1,
+                            "offset_x": 0,
+                            "offset_y": 12,
+                            "blur": 32,
+                        }
+                    }
+                },
+                "shadow opacity",
+            ),
+            (
+                "shadow blur",
+                {
+                    "background": {
+                        "shadow": {
+                            "color": "#000000",
+                            "opacity": 0.35,
+                            "offset_x": 0,
+                            "offset_y": 12,
+                            "blur": -1,
+                        }
+                    }
+                },
+                "shadow blur",
+            ),
+        )
+        for label, ticker, error in invalid_appearances:
+            with self.subTest(label=label), TemporaryDirectory() as root:
+                self._package(
+                    root,
+                    mutate=lambda manifest, ticker=ticker: manifest.update(
+                        {"ticker": ticker}
+                    ),
+                )
+                with (
+                    patch.object(themes, "THEME_ROOT", Path(root)),
+                    self.assertRaisesRegex(ValueError, error),
+                ):
+                    themes.get_display_theme("test-theme", fallback=False)
+
+    def test_web_display_ticker_appearance_keeps_legacy_fallbacks(self):
+        project_root = Path(__file__).resolve().parents[2]
+        stylesheet = (project_root / "frontend_src/scss/app.scss").read_text()
+        script = (project_root / "frontend_src/js/main.js").read_text()
+
+        self.assertIn("--web-display-ticker-border-width: 2px", stylesheet)
+        self.assertIn("--web-display-ticker-border-radius: .8em", stylesheet)
+        self.assertIn("--web-display-ticker-shadow: 0 .75rem 2rem", stylesheet)
+        self.assertIn('tickerBorder ? tickerBorder.width : 2', script)
+        self.assertIn('tickerBorder ? `${tickerBorder.radius}px` : ".8em"', script)
+        self.assertIn(': "0 .75rem 2rem rgb(0 0 0 / 35%)"', script)

@@ -150,12 +150,43 @@ if (monitorRoot) {
     return Number.isFinite(parsed) ? Math.max(minimum, Math.min(maximum, parsed)) : fallback;
   }
 
+  function validTickerBorder(value) {
+    return value && typeof value === "object"
+      && /^#[0-9a-f]{6}$/i.test(value.color || "")
+      && Number.isInteger(value.width) && value.width >= 0 && value.width <= 64
+      && Number.isInteger(value.radius) && value.radius >= 0 && value.radius <= 512;
+  }
+
+  function validTickerShadow(value) {
+    return value && typeof value === "object"
+      && /^#[0-9a-f]{6}$/i.test(value.color || "")
+      && typeof value.opacity === "number" && Number.isFinite(value.opacity)
+      && value.opacity >= 0 && value.opacity <= 1
+      && [value.offset_x, value.offset_y, value.blur].every(
+        (number) => typeof number === "number" && Number.isFinite(number),
+      )
+      && value.offset_x >= -512 && value.offset_x <= 512
+      && value.offset_y >= -512 && value.offset_y <= 512
+      && value.blur >= 0 && value.blur <= 512;
+  }
+
+  function colorWithOpacity(color, opacity) {
+    const red = Number.parseInt(color.slice(1, 3), 16);
+    const green = Number.parseInt(color.slice(3, 5), 16);
+    const blue = Number.parseInt(color.slice(5, 7), 16);
+    return `rgb(${red} ${green} ${blue} / ${opacity})`;
+  }
+
   function applyTheme(theme) {
     const chat = theme?.chat || {};
     const chatBackground = chat.background || {};
     const styles = chat.styles || {};
     const ticker = theme?.ticker || {};
     const tickerBackground = ticker.background || {};
+    const tickerBorder = validTickerBorder(tickerBackground.border)
+      ? tickerBackground.border : null;
+    const tickerShadow = validTickerShadow(tickerBackground.shadow)
+      ? tickerBackground.shadow : null;
     const root = monitorRoot.style;
     root.setProperty("--web-display-canvas", safeColor(theme?.canvas?.background_color, "#0f172a"));
     root.setProperty("--web-display-accent", safeColor(theme?.canvas?.background_accent, theme?.canvas?.background_color || "#333333"));
@@ -166,7 +197,24 @@ if (monitorRoot) {
     root.setProperty("--web-display-name-size", `${boundedNumber(styles.name?.font_size, 30, 10, 96)}px`);
     root.setProperty("--web-display-message-size", `${boundedNumber(styles.message?.font_size, 28, 10, 96)}px`);
     root.setProperty("--web-display-ticker", safeColor(tickerBackground.color, "#172033"));
-    root.setProperty("--web-display-ticker-border", safeColor(tickerBackground.border_color, "#38bdf8"));
+    root.setProperty(
+      "--web-display-ticker-border",
+      tickerBorder ? tickerBorder.color : safeColor(tickerBackground.border_color, "#38bdf8"),
+    );
+    root.setProperty(
+      "--web-display-ticker-border-width",
+      `${tickerBorder ? tickerBorder.width : 2}px`,
+    );
+    root.setProperty(
+      "--web-display-ticker-border-radius",
+      tickerBorder ? `${tickerBorder.radius}px` : ".8em",
+    );
+    root.setProperty(
+      "--web-display-ticker-shadow",
+      tickerShadow
+        ? `${tickerShadow.offset_x}px ${tickerShadow.offset_y}px ${tickerShadow.blur}px ${colorWithOpacity(tickerShadow.color, tickerShadow.opacity)}`
+        : "0 .75rem 2rem rgb(0 0 0 / 35%)",
+    );
     root.setProperty("--web-display-ticker-name", safeColor(ticker.name?.color, ticker.text?.color || "#ffffff"));
     root.setProperty("--web-display-ticker-text", safeColor(ticker.text?.color, "#f8fafc"));
     root.setProperty("--web-display-max-width", `${boundedNumber(chat.max_width, 980, 320, 1400)}px`);

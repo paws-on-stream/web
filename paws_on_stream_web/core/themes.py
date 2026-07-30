@@ -18,6 +18,11 @@ MAX_THEME_BYTES = 256 * 1024
 MAX_THEME_ASSETS = 32
 MAX_ASSET_BYTES = 5 * 1024 * 1024
 MAX_JSON_DEPTH = 20
+HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
+MAX_TICKER_BORDER_WIDTH = 64
+MAX_TICKER_BORDER_RADIUS = 512
+MAX_TICKER_SHADOW_OFFSET = 512
+MAX_TICKER_SHADOW_BLUR = 512
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +128,7 @@ def _validate_v3_theme(theme, *, name, base_dir):
     ticker = theme["ticker"]
     if "always_visible" in ticker and not isinstance(ticker["always_visible"], bool):
         raise ValueError("Ticker always_visible must be a boolean.")
+    _validate_ticker_appearance(ticker)
 
     background = chat.get("background")
     frame = background.get("frame") if isinstance(background, dict) else None
@@ -131,6 +137,89 @@ def _validate_v3_theme(theme, *, name, base_dir):
     for segment in ("top", "middle", "bottom"):
         if frame.get(segment) not in assets:
             raise ValueError("Chat frame references an unknown asset.")
+
+
+def _validate_ticker_appearance(ticker):
+    background = ticker.get("background", {})
+    if not isinstance(background, dict):
+        raise ValueError("Ticker background must be an object.")
+
+    border = background.get("border")
+    if border is not None:
+        _validate_ticker_border(border)
+
+    shadow = background.get("shadow")
+    if shadow is not None:
+        _validate_ticker_shadow(shadow)
+
+
+def _validate_ticker_border(border):
+    if not isinstance(border, dict):
+        raise ValueError("Ticker border must be an object.")
+    if set(border) != {"color", "width", "radius"}:
+        raise ValueError("Ticker border must define color, width, and radius.")
+    if not HEX_COLOR_PATTERN.fullmatch(str(border["color"])):
+        raise ValueError("Ticker border color must be a hex color.")
+    _validate_integer(
+        border["width"],
+        name="Ticker border width",
+        minimum=0,
+        maximum=MAX_TICKER_BORDER_WIDTH,
+    )
+    _validate_integer(
+        border["radius"],
+        name="Ticker border radius",
+        minimum=0,
+        maximum=MAX_TICKER_BORDER_RADIUS,
+    )
+
+
+def _validate_ticker_shadow(shadow):
+    if not isinstance(shadow, dict):
+        raise ValueError("Ticker shadow must be an object.")
+    if set(shadow) != {"color", "opacity", "offset_x", "offset_y", "blur"}:
+        raise ValueError(
+            "Ticker shadow must define color, opacity, offset_x, offset_y, and blur."
+        )
+    if not HEX_COLOR_PATTERN.fullmatch(str(shadow["color"])):
+        raise ValueError("Ticker shadow color must be a hex color.")
+    _validate_number(
+        shadow["opacity"], name="Ticker shadow opacity", minimum=0, maximum=1
+    )
+    _validate_number(
+        shadow["offset_x"],
+        name="Ticker shadow offset_x",
+        minimum=-MAX_TICKER_SHADOW_OFFSET,
+        maximum=MAX_TICKER_SHADOW_OFFSET,
+    )
+    _validate_number(
+        shadow["offset_y"],
+        name="Ticker shadow offset_y",
+        minimum=-MAX_TICKER_SHADOW_OFFSET,
+        maximum=MAX_TICKER_SHADOW_OFFSET,
+    )
+    _validate_number(
+        shadow["blur"],
+        name="Ticker shadow blur",
+        minimum=0,
+        maximum=MAX_TICKER_SHADOW_BLUR,
+    )
+
+
+def _validate_integer(value, *, name, minimum, maximum):
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not minimum <= value <= maximum
+    ):
+        raise ValueError(f"{name} must be an integer between {minimum} and {maximum}.")
+
+
+def _validate_number(value, *, name, minimum, maximum):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a number.")
+    if not minimum <= value <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}.")
 
 
 def _validate_asset(asset, *, base_dir):

@@ -53,6 +53,40 @@ Ausdrücke sind nicht erlaubt.
 Die v2-Kurzform `margin_bottom` bleibt in v3 erhalten. Clients dürfen sie intern
 in ein vollständiges Margin-Modell normalisieren.
 
+## Crawler-Hintergrund
+
+`ticker.background` kann bei einem farbigen Crawler optional um `border` und
+`shadow` ergänzt werden. Fehlen die Objekte, verwenden Web-Renderer und
+Vorschau ihr bisheriges Erscheinungsbild.
+
+```json
+{
+  "background": {
+    "type": "color",
+    "color": "#1f2b3a",
+    "border": {"color": "#38bdf8", "width": 2, "radius": 19},
+    "shadow": {
+      "color": "#000000",
+      "opacity": 0.35,
+      "offset_x": 0,
+      "offset_y": 12,
+      "blur": 32
+    }
+  }
+}
+```
+
+Wenn `border` vorhanden ist, sind `color`, `width` und `radius` erforderlich.
+`color` ist eine Hexfarbe im Format `#RRGGBB`; `width` ist eine ganze Zahl von
+0 bis 64 Pixeln und `radius` eine ganze Zahl von 0 bis 512 Pixeln.
+
+Wenn `shadow` vorhanden ist, sind `color`, `opacity`, `offset_x`, `offset_y`
+und `blur` erforderlich. `color` hat dasselbe Hexformat, `opacity` liegt
+einschließlich der Grenzen zwischen 0 und 1, `offset_x` und `offset_y` zwischen
+-512 und 512 Pixeln und `blur` zwischen 0 und 512 Pixeln. Offsets, Blur und
+Opacity dürfen Dezimalzahlen sein. Unvollständige oder ungültige Werte verhindern
+die Aktivierung des Themes.
+
 ## Sicherheit
 
 - Theme- und Asset-IDs sind auf kleine ASCII-Slugs begrenzt.

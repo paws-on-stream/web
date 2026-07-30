@@ -170,6 +170,9 @@
   --web-display-text: #111827;
   --web-display-ticker: #172033;
   --web-display-ticker-border: #38bdf8;
+  --web-display-ticker-border-width: 2px;
+  --web-display-ticker-border-radius: .8em;
+  --web-display-ticker-shadow: 0 .75rem 2rem rgb(0 0 0 / 35%);
   --web-display-ticker-name: #c4b5fd;
   --web-display-ticker-text: #f8fafc;
   --web-display-max-width: 980px;
@@ -321,11 +324,11 @@
   width: var(--web-display-ticker-width);
   height: calc(var(--web-display-message-size) + 1.4em);
   max-width: none;
-  border-radius: .8em;
-  border: 2px solid var(--web-display-ticker-border);
+  border-radius: var(--web-display-ticker-border-radius);
+  border: var(--web-display-ticker-border-width) solid var(--web-display-ticker-border);
   background: var(--web-display-ticker);
   color: var(--web-display-ticker-text);
-  box-shadow: 0 .75rem 2rem rgb(0 0 0 / 35%);
+  box-shadow: var(--web-display-ticker-shadow);
   white-space: nowrap;
   overflow: hidden;
   transform: scale(var(--web-display-ticker-scale));
