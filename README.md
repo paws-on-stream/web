@@ -144,11 +144,11 @@ Monitoring-Link erzeugen, rotieren oder widerrufen. Der Link wird nur direkt nac
 der Erzeugung im Klartext angezeigt. Eine Rotation widerruft auch bereits
 geöffnete öffentliche Monitor-Sitzungen.
 
-Das Web-Display verwendet standardmäßig das zentrale Theme `east13`. Es enthält
-dieselben drei PNG-Rahmen, dasselbe geordnete Pygame-Template und dieselben
-Gestaltungswerte wie das bisher lokal auf dem Pi installierte EAST-Theme. Die
-Browserdarstellung bleibt eine bestmögliche Monitoring-Vorschau; Pygame ist der
-verbindliche Referenz-Renderer für die 1920×1080-Ausgabe.
+Das Web-Display verwendet standardmäßig das neutrale eingebaute Theme `default`.
+EAST-Themes werden als versionierte ZIP-Pakete importiert und können anschließend
+über die Theme-Verwaltung bearbeitet werden. Die Browserdarstellung bleibt eine
+bestmögliche Monitoring-Vorschau; Pygame ist der verbindliche Referenz-Renderer
+für die 1920×1080-Ausgabe.
 `overlay_theme` ist der gemeinsame Theme-Schalter für Pi und Web-Vorschau, damit
 das Monitoring nicht unbemerkt von der Live-Darstellung abweicht.
 
@@ -156,10 +156,8 @@ Display-Clients mit Display-Token laden das validierte Manifest und die darin
 deklarierten Assets über:
 
 ```text
-GET /api/v1/themes/east13/
-GET /api/v1/themes/east13/3.0.0/assets/chat_top/
-GET /api/v1/themes/east13/3.0.0/assets/chat_middle/
-GET /api/v1/themes/east13/3.0.0/assets/chat_bottom/
+GET /api/v1/themes/{theme}/
+GET /api/v1/themes/{theme}/{version}/assets/{asset_id}/
 ```
 
 Jedes Asset enthält Maße, Alpha-Metadatum und SHA-256. Das Backend prüft beim

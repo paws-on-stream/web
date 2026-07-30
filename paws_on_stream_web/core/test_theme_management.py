@@ -2,20 +2,20 @@ import hashlib
 import io
 import json
 import zipfile
-from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
+from PIL import Image
 
 from core.models import DisplayThemeVersion, Settings
 from core.themes import clear_theme_cache
 
 
 def theme_package(*, slug="uploaded-east", version="1.0.0", digest=None, extra=None):
-    image = (
-        Path(__file__).resolve().parent / "themes" / "east13" / "chat-middle.png"
-    ).read_bytes()
+    image_file = io.BytesIO()
+    Image.new("RGBA", (640, 40), (31, 43, 58, 255)).save(image_file, format="PNG")
+    image = image_file.getvalue()
     digest = digest or hashlib.sha256(image).hexdigest()
     manifest = {
         "schema_version": 3,
@@ -93,7 +93,7 @@ class ThemeManagementTest(TestCase):
         page = self.client.get("/core/themes/")
         assert page.status_code == 200
         self.assertContains(page, "Theme-Verwaltung")
-        self.assertContains(page, "EAST 13")
+        self.assertContains(page, "Default")
 
     def test_admin_imports_activates_serves_and_deletes_version(self):
         self.client.force_login(self.admin)
@@ -135,7 +135,7 @@ class ThemeManagementTest(TestCase):
         assert DisplayThemeVersion.objects.filter(pk=version.pk).exists()
 
         self.client.post(
-            "/core/themes/", {"action": "activate-builtin", "slug": "east13"}
+            "/core/themes/", {"action": "activate-builtin", "slug": "default"}
         )
         deleted = self.client.post(
             "/core/themes/", {"action": "delete-version", "version_id": version.pk}

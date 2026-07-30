@@ -24,8 +24,7 @@ class Settings(models.Model):
         ("crawling", "Crawling"),
     ]
     DISPLAY_THEMES = [
-        ("east13", "EAST 13"),
-        ("east-readable", "EAST Readable (Legacy)"),
+        ("default", "Default"),
     ]
 
     rate_limit_per_minute = models.IntegerField(default=10)
@@ -33,7 +32,7 @@ class Settings(models.Model):
     bot_status = models.CharField(max_length=16, choices=BOT_STATUSES, default="online")
     overlay_theme = models.CharField(
         max_length=32,
-        default="east13",
+        default="default",
     )
     overlay_font_size = models.IntegerField(default=24)
     auto_approve = models.BooleanField(default=False)

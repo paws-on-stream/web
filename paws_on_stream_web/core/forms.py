@@ -99,8 +99,7 @@ class SettingsForm(ReadableFormMixin, forms.ModelForm):
                 "automatisch freigegeben."
             ),
             "overlay_theme": (
-                "Zentrales Theme für Pygame und Browser-Vorschau; EAST 13 verwendet "
-                "die Referenzgrafiken und das Pygame-Template."
+                "Zentrales Theme für Pygame und Browser-Vorschau."
             ),
             "display_duration_sec": "Mindestanzeigedauer einer Nachricht.",
             "scroll_speed_px": "Pixel pro Frame im Crawling-Modus.",

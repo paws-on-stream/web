@@ -13,7 +13,7 @@ ASSET_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 VERSION_PATTERN = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 THEME_ROOT = Path(__file__).resolve().parent / "themes"
-DEFAULT_WEB_THEME = "east13"
+DEFAULT_WEB_THEME = "default"
 MAX_THEME_BYTES = 256 * 1024
 MAX_THEME_ASSETS = 32
 MAX_ASSET_BYTES = 5 * 1024 * 1024
@@ -340,7 +340,7 @@ def clear_theme_cache():
 
 
 def available_theme_choices():
-    choices = {"east13": "EAST 13", "east-readable": "EAST Readable (Legacy)"}
+    choices = {"default": "Default"}
     try:
         from core.models import DisplayThemeVersion
 
@@ -368,12 +368,12 @@ def builtin_themes():
                 )
         except (KeyError, OSError, ValueError):
             continue
-    legacy = THEME_ROOT / "east-readable.json"
+    legacy = THEME_ROOT / "default.json"
     if legacy.is_file():
         result.append(
             {
-                "slug": "east-readable",
-                "name": "EAST Readable",
+                "slug": "default",
+                "name": "Default",
                 "version": "legacy-v2",
                 "schema_version": 2,
                 "asset_count": 0,

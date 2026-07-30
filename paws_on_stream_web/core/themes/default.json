@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "name": "east-readable",
+  "name": "default",
   "canvas": {
     "background_color": "#0f172a",
     "background_accent": "#1e3a5f"

@@ -70,7 +70,7 @@ class PublicWebDisplayTest(TestCase):
             display_duration_sec=8,
             scroll_speed_px=3,
             overlay_font_size=24,
-            overlay_theme="east13",
+            overlay_theme="default",
         )
         self.access = WebDisplayAccess.get_access()
         self.token = self.access.rotate()
@@ -126,39 +126,20 @@ class PublicWebDisplayTest(TestCase):
         assert [item["id"] for item in payload["messages"]] == [str(latest.id)]
         assert str(older.id) not in {item["id"] for item in payload["messages"]}
         assert payload["settings"]["display_mode"] == "chat"
-        assert payload["settings"]["overlay_theme"] == "east13"
-        assert payload["theme"]["schema_version"] == 3
-        assert payload["theme"]["theme"]["id"] == "east13"
-        assert payload["theme"]["chat"]["styles"]["message"]["color"] == "#000000"
-        assert (
-            payload["theme"]["chat"]["background"]["frame"]["type"]
-            == "segmented_vertical"
-        )
-        assert payload["theme"]["assets"]["chat_top"]["url"].startswith(
-            "http://testserver/monitor/themes/east13/3.0.1/assets/chat_top/"
-        )
+        assert payload["settings"]["overlay_theme"] == "default"
+        assert payload["theme"]["schema_version"] == 2
+        assert payload["theme"]["name"] == "default"
+        assert payload["theme"]["chat"]["styles"]["message"]["color"] == "#111827"
+        assert payload["theme"]["chat"]["background"]["color"] == "#f8fafc"
 
-    def test_east_theme_exposes_scaled_crawling_configuration(self):
+    def test_default_theme_exposes_crawling_configuration(self):
         self._authorize()
 
         payload = self.client.get("/monitor/feed/").json()
 
-        assert payload["theme"]["ticker"]["width"] == -80
-        assert payload["theme"]["ticker"]["scale"] == 0.6
-        assert payload["theme"]["ticker"]["always_visible"] is True
-        assert payload["theme"]["theme"]["version"] == "3.0.1"
-        assert payload["theme"]["ticker"]["background"] == {
-            "type": "color",
-            "color": "#1f2b3a",
-            "border": {"color": "#38bdf8", "width": 2, "radius": 19},
-            "shadow": {
-                "color": "#000000",
-                "opacity": 0.35,
-                "offset_x": 0,
-                "offset_y": 12,
-                "blur": 32,
-            },
-        }
+        assert payload["theme"]["ticker"]["width"] == -64
+        assert payload["theme"]["ticker"]["scale"] == 1.0
+        assert payload["theme"]["ticker"]["background"]["border_color"] == "#38bdf8"
 
     def test_feed_applies_event_display_overrides_when_messages_are_disabled(self):
         now = timezone.now()
@@ -177,20 +158,14 @@ class PublicWebDisplayTest(TestCase):
         assert payload["settings"]["display_mode"] == "crawling"
         assert payload["settings"]["scroll_speed_px"] == 9
 
-    def test_monitor_theme_asset_requires_access_and_returns_original_png(self):
-        url = "/monitor/themes/east13/3.0.1/assets/chat_top/"
+    def test_monitor_theme_assets_are_unavailable_for_default_theme(self):
+        url = "/monitor/themes/default/legacy/assets/chat_top/"
         assert self.client.get(url).status_code == 401
         self._authorize()
 
         response = self.client.get(url)
 
-        assert response.status_code == 200
-        assert response["Content-Type"] == "image/png"
-        assert response["X-Content-Type-Options"] == "nosniff"
-        assert response["ETag"] == (
-            '"c9630d4c096a74c832fb1d663d83e75e6584db3e786e593e6b80f8cdb89149d8"'
-        )
-        assert b"".join(response.streaming_content).startswith(b"\x89PNG\r\n\x1a\n")
+        assert response.status_code == 404
 
     def test_follow_up_feed_returns_new_approvals_without_side_effects(self):
         self._authorize()

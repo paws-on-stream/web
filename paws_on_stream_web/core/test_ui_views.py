@@ -55,7 +55,7 @@ class DisplayUIViewsTest(TestCase):
                 "max_message_length": 4096,
                 "spam_threshold": 0.7,
                 "bot_status": "online",
-                "overlay_theme": "east13",
+                "overlay_theme": "default",
                 "overlay_font_size": 24,
                 "display_duration_sec": 8,
                 "display_mode": "chat",

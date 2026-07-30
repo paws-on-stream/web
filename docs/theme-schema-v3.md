@@ -9,7 +9,7 @@ dasselbe Manifest ausschließlich als Monitoring-Vorschau.
 Ein Theme liegt serverseitig in einem abgeschlossenen Ordner:
 
 ```text
-core/themes/east13/
+Theme-ZIP (Wurzelverzeichnis)/
 ├── theme.json
 ├── chat-top.png
 ├── chat-middle.png
@@ -109,8 +109,7 @@ Fallback-Reihenfolge lautet:
 
 1. vollständig validierte zentrale Version,
 2. zuletzt gültige gecachte Version,
-3. mitgeliefertes lokales `east13`,
-4. mitgeliefertes `east-default`.
+3. mitgeliefertes lokales `default`.
 
 Ein Download- oder Validierungsfehler darf das aktive Theme nicht verändern.
 

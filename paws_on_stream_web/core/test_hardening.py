@@ -61,41 +61,24 @@ class ApiRoleTest(TestCase):
 
     def test_display_token_can_fetch_central_theme(self):
         response = self.client.get(
-            "/api/v1/themes/east13/",
+            "/api/v1/themes/default/",
             HTTP_X_API_TOKEN="display-token",
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["schema_version"] == 3
-        assert payload["theme"]["id"] == "east13"
-        assert payload["display_profile"] == {
-            "id": "broadcast-1080p50",
-            "width": 1920,
-            "height": 1080,
-            "refresh_rate": 50,
-            "color_mode": "RGBA",
-            "transparent_output": True,
-        }
-        assert payload["assets"]["chat_top"]["url"].startswith(
-            "http://testserver/api/v1/themes/east13/3.0.1/assets/chat_top/"
-        )
+        assert payload["schema_version"] == 2
+        assert payload["name"] == "default"
 
-    def test_display_token_can_fetch_verified_theme_asset(self):
+    def test_default_theme_does_not_expose_assets(self):
         response = self.client.get(
-            "/api/v1/themes/east13/3.0.1/assets/chat_bottom/",
+            "/api/v1/themes/default/legacy/assets/chat_bottom/",
             HTTP_X_API_TOKEN="display-token",
         )
-        assert response.status_code == 200
-        assert response["Content-Type"] == "image/png"
-        assert response["Cache-Control"] == "public, max-age=31536000, immutable"
-        assert response["ETag"] == (
-            '"70738d632e41289e721bb56e85c69adecea8dbb1050b0d29ab4dec37cea827f7"'
-        )
-        assert b"".join(response.streaming_content).startswith(b"\x89PNG\r\n\x1a\n")
+        assert response.status_code == 404
 
     def test_bot_token_cannot_fetch_theme_assets(self):
         response = self.client.get(
-            "/api/v1/themes/east13/3.0.1/assets/chat_top/",
+            "/api/v1/themes/default/legacy/assets/chat_top/",
             HTTP_X_API_TOKEN="bot-token",
         )
         assert response.status_code == 403
