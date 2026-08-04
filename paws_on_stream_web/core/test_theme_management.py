@@ -189,6 +189,8 @@ class ThemeManagementTest(TestCase):
         assert response.status_code == 302
         version.refresh_from_db()
         assert version.manifest["theme"]["id"] == "uploaded-east"
+        assert version.version == "1.0.1"
+        assert version.manifest["theme"]["version"] == "1.0.1"
 
     def test_only_globally_active_theme_version_is_locked_for_editing(self):
         self.client.force_login(self.admin)
@@ -217,6 +219,8 @@ class ThemeManagementTest(TestCase):
             {"action": "save-manifest", "manifest": json.dumps(version.manifest)},
         )
         assert editable_response.status_code == 302
+        version.refresh_from_db()
+        assert version.version == "1.0.1"
 
     def test_admin_can_preview_saved_theme_in_both_display_modes(self):
         self.client.force_login(self.admin)

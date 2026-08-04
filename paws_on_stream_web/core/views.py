@@ -604,8 +604,10 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
                 or metadata.get("version") != version.version
             ):
                 raise ValueError(
-                    "ID und Version der Theme-Version dürfen nicht geändert werden."
+                    "Die Theme-ID darf nicht geändert werden."
                 )
+            next_version = self._next_version(version)
+            manifest["theme"]["version"] = next_version
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 for asset in version.assets.all():
@@ -621,10 +623,30 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
             return self.render_to_response(self.get_context_data(manifest_json=raw))
         version.manifest = manifest
         version.name = manifest["theme"]["name"]
-        version.save(update_fields=("manifest", "name"))
+        version.version = next_version
+        version.save(update_fields=("manifest", "name", "version"))
         clear_theme_cache()
-        messages.success(request, "theme.json wurde validiert und gespeichert.")
+        messages.success(
+            request,
+            f"theme.json wurde validiert und als Version {next_version} gespeichert.",
+        )
         return redirect(request.path)
+
+    @staticmethod
+    def _next_version(version):
+        try:
+            major, minor, patch = (int(part) for part in version.version.split("."))
+        except ValueError as exc:
+            raise ValueError(
+                "Die Theme-Version muss dem Format X.Y.Z entsprechen."
+            ) from exc
+        while True:
+            patch += 1
+            candidate = f"{major}.{minor}.{patch}"
+            if not DisplayThemeVersion.objects.filter(
+                slug=version.slug, version=candidate
+            ).exists():
+                return candidate
 
     def _upload_asset(self, request, version):
         upload = request.FILES.get("file")
