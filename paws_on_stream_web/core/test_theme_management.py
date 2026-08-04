@@ -181,6 +181,34 @@ class ThemeManagementTest(TestCase):
         version.refresh_from_db()
         assert version.manifest["theme"]["id"] == "uploaded-east"
 
+    def test_only_globally_active_theme_version_is_locked_for_editing(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            "/core/themes/", {"action": "upload", "package": theme_package()}
+        )
+        version = DisplayThemeVersion.objects.get(slug="uploaded-east")
+        editor_url = f"/core/themes/{version.pk}/edit/"
+
+        self.client.post(
+            "/core/themes/", {"action": "activate-version", "version_id": version.pk}
+        )
+        active_response = self.client.post(
+            editor_url,
+            {"action": "save-manifest", "manifest": json.dumps(version.manifest)},
+        )
+        assert active_response.status_code == 400
+
+        self.client.post(
+            "/core/themes/", {"action": "activate-builtin", "slug": "default"}
+        )
+        version.refresh_from_db()
+        assert version.is_current
+        editable_response = self.client.post(
+            editor_url,
+            {"action": "save-manifest", "manifest": json.dumps(version.manifest)},
+        )
+        assert editable_response.status_code == 302
+
     def test_admin_can_preview_saved_theme_in_both_display_modes(self):
         self.client.force_login(self.admin)
         self.client.post(

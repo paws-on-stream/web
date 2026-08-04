@@ -555,7 +555,10 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         version = self.get_object()
-        if version.is_current:
+        if (
+            version.is_current
+            and Settings.get_settings().overlay_theme == version.slug
+        ):
             return HttpResponseBadRequest(
                 "Aktive Theme-Versionen dürfen nicht bearbeitet werden."
             )
