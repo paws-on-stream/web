@@ -60,6 +60,7 @@ from core.themes import (
     _validate_v3_theme,
     builtin_themes,
     clear_theme_cache,
+    get_display_theme,
 )
 
 
@@ -93,6 +94,23 @@ class SettingsViewSet(viewsets.GenericViewSet):
         data["display_mode_source"] = effective.display_mode_source
         data["scroll_speed_source"] = effective.scroll_speed_source
         data["event_id"] = effective.event.id if effective.event else None
+        try:
+            theme = get_display_theme(settings.overlay_theme, fallback=False)
+        except (FileNotFoundError, ValueError):
+            theme = None
+        if isinstance(theme, dict) and theme.get("schema_version") == 3:
+            metadata = theme.get("theme", {})
+            version = metadata.get("version") if isinstance(metadata, dict) else None
+            if isinstance(version, str) and version:
+                data["overlay_theme_package"] = {
+                    "version": version,
+                    "manifest_url": request.build_absolute_uri(
+                        reverse(
+                            "display_theme_api",
+                            kwargs={"name": settings.overlay_theme},
+                        )
+                    ),
+                }
         # Strip trailing whitespace / hide empty reg_api_key
         if data.get("reg_api_key"):
             data["reg_api_key"] = data["reg_api_key"].strip()

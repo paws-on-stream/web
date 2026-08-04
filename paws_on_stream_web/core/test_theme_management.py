@@ -114,6 +114,15 @@ class ThemeManagementTest(TestCase):
         assert version.is_current
         assert Settings.get_settings().overlay_theme == "uploaded-east"
 
+        settings_response = self.client.get(
+            "/api/v1/settings/1/", HTTP_X_API_TOKEN="display-token"
+        )
+        assert settings_response.status_code == 200
+        assert settings_response.json()["overlay_theme_package"] == {
+            "version": "1.0.0",
+            "manifest_url": "http://testserver/api/v1/themes/uploaded-east/",
+        }
+
         manifest = self.client.get(
             "/api/v1/themes/uploaded-east/", HTTP_X_API_TOKEN="display-token"
         )
