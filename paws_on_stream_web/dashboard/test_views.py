@@ -124,12 +124,12 @@ class DashboardViewTest(TestCase):
         assert kpis["participants"] >= 3  # includes participants from message factories
         assert kpis["msg-rate"] >= 0
 
-    def test_live_endpoint_returns_only_pending_messages_and_kpis(self):
+    def test_live_endpoint_returns_pending_and_recently_approved_messages(self):
         event = EventFactory(name="Live-Event")
         pending = TextMessageFactory(
             status="pending", content="live-pending", event=event
         )
-        TextMessageFactory(status="approved", content="live-approved")
+        approved = TextMessageFactory(status="approved", content="live-approved")
 
         response = self.client.get("/live/")
 
@@ -138,6 +138,12 @@ class DashboardViewTest(TestCase):
         assert payload["kpis"]["pending_count"] >= 2
         assert {item["id"] for item in payload["messages"]} >= {str(pending.pk)}
         assert all(item["status"] == "pending" for item in payload["messages"])
+        assert {item["id"] for item in payload["approved_messages"]} >= {
+            str(approved.pk)
+        }
+        assert all(
+            item["status"] == "approved" for item in payload["approved_messages"]
+        )
         message = next(
             item for item in payload["messages"] if item["id"] == str(pending.pk)
         )

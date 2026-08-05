@@ -124,6 +124,18 @@ def _dashboard_payload(request):
     ).data
     for serialized_message, message in zip(messages, queue, strict=True):
         serialized_message["event_name"] = message.event.name if message.event else ""
+    approved_queue = (
+        Message.objects.filter(status="approved")
+        .select_related("participant", "event", "media_asset")
+        .order_by("-approved_at")[:10]
+    )
+    approved_messages = MessageSerializer(
+        approved_queue, many=True, context={"request": request}
+    ).data
+    for serialized_message, message in zip(
+        approved_messages, approved_queue, strict=True
+    ):
+        serialized_message["event_name"] = message.event.name if message.event else ""
 
     return {
         "kpis": {
@@ -151,6 +163,7 @@ def _dashboard_payload(request):
             ),
         },
         "messages": messages,
+        "approved_messages": approved_messages,
         "updated_at": now.isoformat(),
     }
 
