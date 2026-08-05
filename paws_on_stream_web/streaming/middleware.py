@@ -35,17 +35,20 @@ class ApiTokenMiddleware:
             return self._forbidden()
 
         if settings.API_AUTH_TOKEN and compare_digest(token, settings.API_AUTH_TOKEN):
+            request.paws_api_role = "admin"
             return self.get_response(request)
         if settings.BOT_API_AUTH_TOKEN and compare_digest(
             token, settings.BOT_API_AUTH_TOKEN
         ):
             if self._bot_path_allowed(request):
+                request.paws_api_role = "bot"
                 return self.get_response(request)
             return self._forbidden()
         if settings.DISPLAY_API_AUTH_TOKEN and compare_digest(
             token, settings.DISPLAY_API_AUTH_TOKEN
         ):
             if self._display_path_allowed(request):
+                request.paws_api_role = "display"
                 return self.get_response(request)
             return self._forbidden()
         return self._forbidden()

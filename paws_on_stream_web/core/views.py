@@ -164,6 +164,8 @@ class MetricsAPIView(APIView):
         from participants.models import Participant
         from streaming.models import Message
 
+        from core.api_metrics import API_ROLES, THROTTLE_ENDPOINTS, throttle_rejections
+
         counts = {
             status: Message.objects.filter(status=status).count()
             for status in ("pending", "approved", "rejected")
@@ -175,7 +177,17 @@ class MetricsAPIView(APIView):
             f'paws_messages{{status="rejected"}} {counts["rejected"]}',
             "# TYPE paws_participants gauge",
             f"paws_participants {Participant.objects.count()}",
+            "# TYPE paws_api_throttle_rejections_total counter",
         ]
+        lines.extend(
+            (
+                "paws_api_throttle_rejections_total"
+                f'{{role="{role}",endpoint="{endpoint}"}} '
+                f"{throttle_rejections(role, endpoint)}"
+            )
+            for role in API_ROLES
+            for endpoint in THROTTLE_ENDPOINTS
+        )
         return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
 
 

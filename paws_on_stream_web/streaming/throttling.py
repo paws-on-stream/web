@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 
+from core.api_metrics import record_throttle_rejection
 from core.models import Settings
 from rest_framework.throttling import SimpleRateThrottle
 
@@ -13,8 +14,23 @@ class UserRateThrottle(SimpleRateThrottle):
     DRF settings or on the viewset directly.
     """
 
-    rate = "10/min"
+    rate = None
     cache_alias = "default"
+
+    def allow_request(self, request, view):  # noqa: ARG002
+        # The bot token is a trusted service credential. Its transport calls do
+        # not identify an individual participant, so an IP key would throttle
+        # the entire bot after a few media uploads. Message creation remains
+        # below and is still keyed by telegram_id.
+        if (
+            getattr(request, "paws_api_role", "") == "bot"
+            and request.path != "/api/v1/message/"
+        ):
+            return True
+        allowed = super().allow_request(request, view)
+        if not allowed:
+            record_throttle_rejection(request)
+        return allowed
 
     def get_rate(self):
         configured = max(Settings.get_settings().rate_limit_per_minute, 1)
