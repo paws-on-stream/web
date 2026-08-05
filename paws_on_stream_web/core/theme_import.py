@@ -10,11 +10,13 @@ from django.db import transaction
 from core.models import DisplayThemeAsset, DisplayThemeVersion
 from core.themes import (
     MAX_ASSET_BYTES,
+    MAX_FONT_ASSET_BYTES,
     MAX_THEME_ASSETS,
     MAX_THEME_BYTES,
     _normalize_theme_name,
     _validate_v3_theme,
     clear_theme_cache,
+    theme_asset_content_type,
 )
 
 MAX_PACKAGE_BYTES = 10 * 1024 * 1024
@@ -94,6 +96,7 @@ def import_theme_package(upload, *, user):
                         asset_id=asset_id,
                         sha256=asset["sha256"],
                         size=len(payload),
+                        content_type=theme_asset_content_type(asset),
                     )
                     stored.file.save(asset["file"], ContentFile(payload), save=False)
                     stored.save()
@@ -124,8 +127,14 @@ def _validated_members(archive):
             raise ThemeImportError("Das Theme-Paket enthält einen unsicheren Pfad.")
         seen.add(member.filename)
         total_size += member.file_size
-        if member.file_size > MAX_ASSET_BYTES and member.filename != "theme.json":
-            raise ThemeImportError("Ein Theme-Asset ist zu groß.")
+        if member.filename != "theme.json":
+            size_limit = (
+                MAX_FONT_ASSET_BYTES
+                if member.filename.lower().endswith((".ttf", ".otf"))
+                else MAX_ASSET_BYTES
+            )
+            if member.file_size > size_limit:
+                raise ThemeImportError("Ein Theme-Asset ist zu groß.")
     if total_size > MAX_UNCOMPRESSED_BYTES:
         raise ThemeImportError("Das entpackte Theme-Paket ist zu groß.")
     return members

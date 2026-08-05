@@ -66,6 +66,7 @@ def theme_package(*, slug="uploaded-east", version="1.0.0", digest=None, extra=N
 @override_settings(
     MEDIA_ROOT="/private/tmp/east-theme-management-tests",
     API_AUTH_TOKEN="admin-token",
+    BOT_API_AUTH_TOKEN="bot-token",
     DISPLAY_API_AUTH_TOKEN="display-token",
 )
 class ThemeManagementTest(TestCase):
@@ -135,7 +136,15 @@ class ThemeManagementTest(TestCase):
             HTTP_X_API_TOKEN="display-token",
         )
         assert asset.status_code == 200
+        assert asset["Content-Type"] == "image/png"
         assert b"".join(asset.streaming_content).startswith(b"\x89PNG")
+        assert (
+            self.client.get(
+                "/api/v1/themes/uploaded-east/1.0.0/assets/frame/",
+                HTTP_X_API_TOKEN="bot-token",
+            ).status_code
+            == 403
+        )
 
         blocked = self.client.post(
             "/core/themes/", {"action": "delete-version", "version_id": version.pk}
@@ -236,7 +245,203 @@ class ThemeManagementTest(TestCase):
         self.assertContains(page, "Crawling")
         self.assertContains(page, "Grafikrahmen")
         self.assertContains(page, "CSS-Fallback")
-        asset = self.client.get(
-            f"/core/themes/{version.pk}/preview/assets/frame/"
-        )
+        asset = self.client.get(f"/core/themes/{version.pk}/preview/assets/frame/")
         assert asset.status_code == 200
+
+    def test_imports_and_serves_ttf_and_otf_assets(self):
+        for font_format, signature, content_type in (
+            ("ttf", b"\x00\x01\x00\x00", "font/ttf"),
+            ("otf", b"OTTO", "font/otf"),
+        ):
+            with self.subTest(font_format=font_format):
+                self.client.force_login(self.admin)
+                font = signature + b"theme-font"
+                image_file = io.BytesIO()
+                Image.new("RGBA", (640, 40), (31, 43, 58, 255)).save(
+                    image_file, format="PNG"
+                )
+                image = image_file.getvalue()
+                manifest = self._font_manifest(
+                    font_format=font_format,
+                    font=font,
+                    image=image,
+                    version=f"1.0.{1 if font_format == 'ttf' else 2}",
+                )
+                package = self._theme_package(
+                    manifest, {"frame.png": image, f"font.{font_format}": font}
+                )
+
+                response = self.client.post(
+                    "/core/themes/", {"action": "upload", "package": package}
+                )
+                assert response.status_code == 302
+                version = DisplayThemeVersion.objects.get(
+                    slug="uploaded-east", version=manifest["theme"]["version"]
+                )
+                asset = version.assets.get(asset_id="open_sans_bold")
+                assert asset.content_type == content_type
+                assert asset.sha256 == hashlib.sha256(font).hexdigest()
+
+                self.client.post(
+                    "/core/themes/",
+                    {"action": "activate-version", "version_id": version.pk},
+                )
+                url = (
+                    f"/api/v1/themes/uploaded-east/{version.version}/assets/"
+                    "open_sans_bold/"
+                )
+                fetched = self.client.get(url, HTTP_X_API_TOKEN="display-token")
+                assert fetched.status_code == 200
+                assert fetched["Content-Type"] == content_type
+                assert fetched["ETag"] == f'"{asset.sha256}"'
+                assert b"".join(fetched.streaming_content) == font
+                assert (
+                    self.client.get(url, HTTP_X_API_TOKEN="bot-token").status_code
+                    == 403
+                )
+
+    def test_import_rejects_invalid_font_assets_and_references(self):
+        self.client.force_login(self.admin)
+        image_file = io.BytesIO()
+        Image.new("RGBA", (640, 40), (31, 43, 58, 255)).save(image_file, format="PNG")
+        image = image_file.getvalue()
+        valid_font = b"\x00\x01\x00\x00theme-font"
+        cases = (
+            ("wrong extension", "ttf", valid_font, "font.png", None, "extension"),
+            ("bad signature", "ttf", b"not-a-font", "font.ttf", None, "signature"),
+            ("bad checksum", "ttf", valid_font, "font.ttf", "0" * 64, "digest"),
+            ("missing font asset", "ttf", valid_font, "font.ttf", None, "font asset"),
+            ("image as font", "ttf", valid_font, "font.ttf", None, "font asset"),
+            ("font as frame", "ttf", valid_font, "font.ttf", None, "frame"),
+        )
+        for label, font_format, font, font_name, digest, error in cases:
+            with self.subTest(label=label):
+                manifest = self._font_manifest(
+                    font_format=font_format,
+                    font=font,
+                    image=image,
+                    version=f"2.0.{len(label)}",
+                    font_file=font_name,
+                    font_digest=digest,
+                )
+                files = {"frame.png": image, font_name: font}
+                if label == "missing font asset":
+                    manifest["fonts"]["default"]["asset"] = "not_there"
+                elif label == "image as font":
+                    manifest["fonts"]["default"]["asset"] = "frame"
+                elif label == "font as frame":
+                    manifest["chat"]["background"]["frame"]["top"] = "open_sans_bold"
+                response = self.client.post(
+                    "/core/themes/",
+                    {
+                        "action": "upload",
+                        "package": self._theme_package(manifest, files),
+                    },
+                )
+                assert response.status_code == 200
+                self.assertContains(response, error)
+
+    def test_editor_accepts_font_assets_and_bumps_active_package_version(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            "/core/themes/", {"action": "upload", "package": theme_package()}
+        )
+        version = DisplayThemeVersion.objects.get(slug="uploaded-east")
+        font = b"\x00\x01\x00\x00theme-font"
+        response = self.client.post(
+            f"/core/themes/{version.pk}/edit/",
+            {
+                "action": "upload-asset",
+                "asset_key": "open_sans_bold",
+                "file": SimpleUploadedFile("OpenSans-Bold.ttf", font),
+            },
+        )
+        assert response.status_code == 302
+        asset = version.assets.get(asset_id="open_sans_bold")
+        assert asset.content_type == "font/ttf"
+
+        manifest = json.loads(json.dumps(version.manifest))
+        manifest["assets"]["open_sans_bold"] = {
+            "type": "font",
+            "file": "OpenSans-Bold.ttf",
+            "format": "ttf",
+            "sha256": asset.sha256,
+        }
+        manifest["fonts"] = {"default": {"asset": "open_sans_bold", "size": 24}}
+        saved = self.client.post(
+            f"/core/themes/{version.pk}/edit/",
+            {"action": "save-manifest", "manifest": json.dumps(manifest)},
+        )
+        assert saved.status_code == 302
+        version.refresh_from_db()
+        assert version.version == "1.0.1"
+
+        self.client.post(
+            "/core/themes/",
+            {"action": "activate-version", "version_id": version.pk},
+        )
+        settings = self.client.get(
+            "/api/v1/settings/1/", HTTP_X_API_TOKEN="display-token"
+        )
+        assert settings.json()["overlay_theme_package"]["version"] == "1.0.1"
+
+    @staticmethod
+    def _font_manifest(
+        *, font_format, font, image, version, font_file=None, font_digest=None
+    ):
+        return {
+            "schema_version": 3,
+            "theme": {
+                "id": "uploaded-east",
+                "name": "Uploaded EAST",
+                "version": version,
+            },
+            "display_profile": {},
+            "assets": {
+                "frame": {
+                    "type": "image",
+                    "file": "frame.png",
+                    "format": "png",
+                    "required": True,
+                    "width": 640,
+                    "height": 40,
+                    "alpha": True,
+                    "sha256": hashlib.sha256(image).hexdigest(),
+                },
+                "open_sans_bold": {
+                    "type": "font",
+                    "file": font_file or f"font.{font_format}",
+                    "format": font_format,
+                    "sha256": font_digest or hashlib.sha256(font).hexdigest(),
+                },
+            },
+            "canvas": {},
+            "fonts": {"default": {"asset": "open_sans_bold", "size": 24}},
+            "chat": {
+                "background": {
+                    "frame": {
+                        "type": "segmented_vertical",
+                        "top": "frame",
+                        "middle": "frame",
+                        "bottom": "frame",
+                    }
+                },
+                "template": {"elements": [{"field": "content", "style": "text"}]},
+                "styles": {"text": {"type": "text"}},
+            },
+            "ticker": {},
+            "media": {},
+            "luma": {},
+            "rendering": {},
+        }
+
+    @staticmethod
+    def _theme_package(manifest, files):
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("theme.json", json.dumps(manifest))
+            for name, payload in files.items():
+                archive.writestr(name, payload)
+        return SimpleUploadedFile(
+            "font-theme.zip", stream.getvalue(), content_type="application/zip"
+        )

@@ -20,6 +20,34 @@ Das Manifest wird über `GET /api/v1/themes/{theme}/` ausgeliefert. Die Antwort
 ergänzt jedes Asset um eine absolute, authentifizierte `url`. Der Client lädt nur
 die im Manifest aufgeführten Assets und prüft deren SHA-256 vor der Aktivierung.
 
+## Schriftassets
+
+Ein v3-Theme kann Schriftdateien als deklarierte Assets mitliefern. Zulässig sind
+nur TTF und OTF; `fonts.default.asset` referenziert ausschließlich die logische
+Asset-ID und niemals einen Dateipfad.
+
+```json
+{
+  "assets": {
+    "open_sans_bold": {
+      "type": "font",
+      "file": "OpenSans-Bold.ttf",
+      "format": "ttf",
+      "sha256": "…"
+    }
+  },
+  "fonts": {
+    "default": {"asset": "open_sans_bold", "size": 24}
+  }
+}
+```
+
+Fontdateien sind auf 10 MiB begrenzt. Dateiname, Format, SHA-256 und die
+Container-Signatur müssen zusammenpassen. Ein als Font referenziertes Bild oder
+ein als Chat-Frame referenzierter Font wird abgelehnt. Der Browser verwendet für
+die Vorschau weiterhin einen System-Fallback, falls die Schrift nicht als Webfont
+geladen wird.
+
 ## Referenzprofil
 
 `broadcast-1080p50` beschreibt die logische Renderfläche 1920×1080 und die

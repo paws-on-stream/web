@@ -16,13 +16,20 @@ THEME_ROOT = Path(__file__).resolve().parent / "themes"
 DEFAULT_WEB_THEME = "default"
 MAX_THEME_BYTES = 256 * 1024
 MAX_THEME_ASSETS = 32
-MAX_ASSET_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_ASSET_BYTES = 5 * 1024 * 1024
+MAX_FONT_ASSET_BYTES = 10 * 1024 * 1024
+MAX_ASSET_BYTES = MAX_IMAGE_ASSET_BYTES
 MAX_JSON_DEPTH = 20
 HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 MAX_TICKER_BORDER_WIDTH = 64
 MAX_TICKER_BORDER_RADIUS = 512
 MAX_TICKER_SHADOW_OFFSET = 512
 MAX_TICKER_SHADOW_BLUR = 512
+FONT_CONTENT_TYPES = {"ttf": "font/ttf", "otf": "font/otf"}
+FONT_SIGNATURES = {
+    "ttf": (b"\x00\x01\x00\x00", b"true"),
+    "otf": (b"OTTO",),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +117,8 @@ def _validate_v3_theme(theme, *, name, base_dir):
             raise ValueError("Invalid theme asset id.")
         _validate_asset(asset, base_dir=base_dir)
 
+    _validate_font_configuration(theme["fonts"], assets)
+
     chat = theme["chat"]
     template = chat.get("template", {})
     elements = template.get("elements", []) if isinstance(template, dict) else []
@@ -137,6 +146,8 @@ def _validate_v3_theme(theme, *, name, base_dir):
     for segment in ("top", "middle", "bottom"):
         if frame.get(segment) not in assets:
             raise ValueError("Chat frame references an unknown asset.")
+        if assets[frame[segment]].get("type") != "image":
+            raise ValueError("Chat frame must reference image assets.")
 
 
 def _validate_ticker_appearance(ticker):
@@ -226,15 +237,27 @@ def _validate_asset(asset, *, base_dir):
     file_name = asset.get("file")
     if not isinstance(file_name, str) or Path(file_name).name != file_name:
         raise ValueError("Invalid theme asset path.")
-    if asset.get("format") != "png":
-        raise ValueError("Only PNG theme images are supported.")
-    if asset.get("type") != "image" or not isinstance(asset.get("required"), bool):
-        raise ValueError("Invalid theme asset metadata.")
     digest = str(asset.get("sha256", ""))
     if not SHA256_PATTERN.fullmatch(digest):
         raise ValueError("Invalid theme asset digest.")
     path = base_dir / file_name
-    if not path.is_file() or path.stat().st_size > MAX_ASSET_BYTES:
+    if not path.is_file():
+        raise ValueError("Theme asset is missing or too large.")
+    asset_type = asset.get("type")
+    if asset_type == "image":
+        _validate_image_asset(asset, path=path, digest=digest)
+    elif asset_type == "font":
+        _validate_font_asset(asset, path=path, digest=digest)
+    else:
+        raise ValueError("Unsupported theme asset type.")
+
+
+def _validate_image_asset(asset, *, path, digest):
+    if asset.get("format") != "png":
+        raise ValueError("Only PNG theme images are supported.")
+    if not isinstance(asset.get("required"), bool):
+        raise ValueError("Invalid theme image metadata.")
+    if path.stat().st_size > MAX_IMAGE_ASSET_BYTES:
         raise ValueError("Theme asset is missing or too large.")
     payload = path.read_bytes()
     if hashlib.sha256(payload).hexdigest() != digest:
@@ -252,6 +275,57 @@ def _validate_asset(asset, *, base_dir):
                 raise ValueError("Theme asset alpha metadata does not match.")
     except (OSError, UnidentifiedImageError) as exc:
         raise ValueError("Invalid theme asset image.") from exc
+
+
+def _validate_font_asset(asset, *, path, digest):
+    font_format = asset.get("format")
+    if font_format not in FONT_CONTENT_TYPES:
+        raise ValueError("Only TTF and OTF theme fonts are supported.")
+    if path.suffix.lower() != f".{font_format}":
+        raise ValueError("Theme font extension does not match its format.")
+    if path.stat().st_size > MAX_FONT_ASSET_BYTES:
+        raise ValueError("Theme font is missing or too large.")
+    payload = path.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != digest:
+        raise ValueError("Theme asset digest does not match.")
+    _validate_font_signature(payload, font_format)
+
+
+def _validate_font_configuration(fonts, assets):
+    default_font = fonts.get("default")
+    if default_font is None:
+        return
+    if not isinstance(default_font, dict):
+        raise ValueError("Theme default font must be an object.")
+    if set(default_font) - {"asset", "size"}:
+        raise ValueError("Theme default font may only define asset and size.")
+    asset_id = default_font.get("asset")
+    if (
+        not isinstance(asset_id, str)
+        or asset_id not in assets
+        or assets[asset_id].get("type") != "font"
+    ):
+        raise ValueError("Theme default font must reference a font asset.")
+    if "size" in default_font:
+        _validate_integer(
+            default_font["size"],
+            name="Theme default font size",
+            minimum=1,
+            maximum=512,
+        )
+
+
+def _validate_font_signature(payload, font_format):
+    if not any(
+        payload.startswith(signature) for signature in FONT_SIGNATURES[font_format]
+    ):
+        raise ValueError("Theme font signature does not match its format.")
+
+
+def theme_asset_content_type(asset):
+    if asset.get("type") == "font":
+        return FONT_CONTENT_TYPES[asset["format"]]
+    return "image/png"
 
 
 @lru_cache(maxsize=16)
@@ -330,7 +404,7 @@ def get_theme_asset(theme_name, asset_id):
         file=path,
         file_name=path.name,
         size=path.stat().st_size,
-        content_type="image/png",
+        content_type=theme_asset_content_type(asset),
         sha256=asset["sha256"],
     )
 

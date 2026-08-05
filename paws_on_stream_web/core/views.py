@@ -55,8 +55,11 @@ from core.serializers import (
 from core.tables import DisplayDeviceTable, DisplayLogTable
 from core.theme_import import ThemeImportError, import_theme_package
 from core.themes import (
+    FONT_CONTENT_TYPES,
     MAX_ASSET_BYTES,
+    MAX_FONT_ASSET_BYTES,
     _theme_path,
+    _validate_font_signature,
     _validate_v3_theme,
     builtin_themes,
     clear_theme_cache,
@@ -197,8 +200,12 @@ class DisplayDeviceViewSet(viewsets.ModelViewSet):
         defaults = {
             k: request.data[k]
             for k in (
-                "hostname", "location", "is_active", "theme_cache_theme",
-                "theme_cache_version", "theme_reload_generation",
+                "hostname",
+                "location",
+                "is_active",
+                "theme_cache_theme",
+                "theme_cache_version",
+                "theme_reload_generation",
             )
             if k in request.data
         }
@@ -573,10 +580,7 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         version = self.get_object()
-        if (
-            version.is_current
-            and Settings.get_settings().overlay_theme == version.slug
-        ):
+        if version.is_current and Settings.get_settings().overlay_theme == version.slug:
             return HttpResponseBadRequest(
                 "Aktive Theme-Versionen dürfen nicht bearbeitet werden."
             )
@@ -603,9 +607,7 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
                 metadata.get("id") != version.slug
                 or metadata.get("version") != version.version
             ):
-                raise ValueError(
-                    "Die Theme-ID darf nicht geändert werden."
-                )
+                raise ValueError("Die Theme-ID darf nicht geändert werden.")
             next_version = self._next_version(version)
             manifest["theme"]["version"] = next_version
             with tempfile.TemporaryDirectory() as directory:
@@ -652,21 +654,44 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
         upload = request.FILES.get("file")
         asset_id = str(request.POST.get("asset_key", "")).strip().lower()
         if not upload or not asset_id:
-            return HttpResponseBadRequest("Asset-ID und PNG-Datei sind erforderlich.")
+            return HttpResponseBadRequest(
+                "Asset-ID und Bild- oder Schriftdatei sind erforderlich."
+            )
         payload = upload.read()
-        if len(payload) > MAX_ASSET_BYTES or not upload.name.lower().endswith(".png"):
-            return HttpResponseBadRequest("Nur PNG-Dateien bis 5 MB sind erlaubt.")
-        try:
-            with Image.open(__import__("io").BytesIO(payload)) as image:
-                image.verify()
-        except (OSError, UnidentifiedImageError):
-            return HttpResponseBadRequest("Die Datei ist kein gültiges PNG.")
+        suffix = Path(upload.name).suffix.lower()
+        if suffix in {".ttf", ".otf"}:
+            font_format = suffix.removeprefix(".")
+            if len(payload) > MAX_FONT_ASSET_BYTES:
+                return HttpResponseBadRequest(
+                    "Schriftdateien dürfen höchstens 10 MB groß sein."
+                )
+            try:
+                _validate_font_signature(payload, font_format)
+            except ValueError:
+                return HttpResponseBadRequest(
+                    "Die Schriftdatei hat keine gültige TTF- oder OTF-Signatur."
+                )
+            content_type = FONT_CONTENT_TYPES[font_format]
+        else:
+            if len(payload) > MAX_ASSET_BYTES or suffix != ".png":
+                return HttpResponseBadRequest(
+                    "Nur PNG-Dateien bis 5 MB oder TTF/OTF-Schriften bis 10 MB "
+                    "sind erlaubt."
+                )
+            try:
+                with Image.open(__import__("io").BytesIO(payload)) as image:
+                    image.verify()
+            except (OSError, UnidentifiedImageError):
+                return HttpResponseBadRequest("Die Datei ist kein gültiges PNG.")
+            content_type = "image/png"
         asset, _ = DisplayThemeAsset.objects.get_or_create(
-            theme_version=version, asset_id=asset_id
+            theme_version=version,
+            asset_id=asset_id,
+            defaults={"sha256": "", "size": 0},
         )
         asset.sha256 = hashlib.sha256(payload).hexdigest()
         asset.size = len(payload)
-        asset.content_type = "image/png"
+        asset.content_type = content_type
         asset.file.save(Path(upload.name).name, ContentFile(payload), save=False)
         asset.save()
         messages.success(
@@ -846,8 +871,10 @@ class DisplayDeviceDetailView(StaffRequiredMixin, DetailView):
         else:
             age_seconds = (timezone.now() - d.last_seen).total_seconds()
             connection_status, variant = (
-                ("Online", "success") if age_seconds <= 60
-                else ("Veraltet", "warning") if age_seconds <= 300
+                ("Online", "success")
+                if age_seconds <= 60
+                else ("Veraltet", "warning")
+                if age_seconds <= 300
                 else ("Offline", "danger")
             )
         badges.append({"label": connection_status, "variant": variant})
