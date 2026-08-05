@@ -155,7 +155,6 @@ class MessageViewSet(viewsets.ModelViewSet):
             now = timezone.now()
             active_event = Event.objects.filter(
                 is_active=True,
-                allow_messages=True,
                 starts_at__lte=now,
                 ends_at__gte=now,
             ).first()
@@ -165,6 +164,15 @@ class MessageViewSet(viewsets.ModelViewSet):
                         "status": "rejected",
                         "reason": "no_event",
                         "message": "No active event.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not active_event.allow_messages:
+                return Response(
+                    {
+                        "status": "rejected",
+                        "reason": "messages_disabled",
+                        "message": "Messages are disabled for the active event.",
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )

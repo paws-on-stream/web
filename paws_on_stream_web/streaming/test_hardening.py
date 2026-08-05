@@ -46,7 +46,7 @@ class MessageBusinessRulesTest(TestCase):
             starts_at=timezone.now() - timedelta(hours=1),
             ends_at=timezone.now() + timedelta(hours=1),
         )
-        assert self.post_message().json()["reason"] == "no_event"
+        assert self.post_message().json()["reason"] == "messages_disabled"
 
     def test_client_cannot_preapprove_message(self):
         EventFactory(
