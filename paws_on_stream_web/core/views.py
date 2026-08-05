@@ -580,10 +580,6 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         version = self.get_object()
-        if version.is_current and Settings.get_settings().overlay_theme == version.slug:
-            return HttpResponseBadRequest(
-                "Aktive Theme-Versionen dürfen nicht bearbeitet werden."
-            )
         action = request.POST.get("action")
         if action == "save-manifest":
             return self._save_manifest(request, version)
@@ -623,10 +619,18 @@ class DisplayThemeEditorView(AdminRequiredMixin, TemplateView):
         except (json.JSONDecodeError, OSError, ValueError) as exc:
             messages.error(request, str(exc))
             return self.render_to_response(self.get_context_data(manifest_json=raw))
-        version.manifest = manifest
-        version.name = manifest["theme"]["name"]
-        version.version = next_version
-        version.save(update_fields=("manifest", "name", "version"))
+        with transaction.atomic():
+            version.manifest = manifest
+            version.name = manifest["theme"]["name"]
+            version.version = next_version
+            version.save(update_fields=("manifest", "name", "version"))
+            if version.is_current:
+                app_settings = Settings.objects.select_for_update().get(pk=1)
+                if app_settings.overlay_theme == version.slug:
+                    app_settings.theme_reload_generation += 1
+                    app_settings.save(
+                        update_fields=("theme_reload_generation", "updated_at")
+                    )
         clear_theme_cache()
         messages.success(
             request,

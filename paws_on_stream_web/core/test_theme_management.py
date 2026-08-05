@@ -201,7 +201,7 @@ class ThemeManagementTest(TestCase):
         assert version.version == "1.0.1"
         assert version.manifest["theme"]["version"] == "1.0.1"
 
-    def test_only_globally_active_theme_version_is_locked_for_editing(self):
+    def test_active_theme_save_bumps_package_version_and_reload_generation(self):
         self.client.force_login(self.admin)
         self.client.post(
             "/core/themes/", {"action": "upload", "package": theme_package()}
@@ -212,11 +212,22 @@ class ThemeManagementTest(TestCase):
         self.client.post(
             "/core/themes/", {"action": "activate-version", "version_id": version.pk}
         )
+        settings = Settings.get_settings()
+        initial_generation = settings.theme_reload_generation
         active_response = self.client.post(
             editor_url,
             {"action": "save-manifest", "manifest": json.dumps(version.manifest)},
         )
-        assert active_response.status_code == 400
+        assert active_response.status_code == 302
+        version.refresh_from_db()
+        settings.refresh_from_db()
+        assert version.version == "1.0.1"
+        assert version.is_current
+        assert settings.theme_reload_generation == initial_generation + 1
+        package = self.client.get(
+            "/api/v1/settings/1/", HTTP_X_API_TOKEN="display-token"
+        ).json()["overlay_theme_package"]
+        assert package["version"] == "1.0.1"
 
         self.client.post(
             "/core/themes/", {"action": "activate-builtin", "slug": "default"}
@@ -229,7 +240,7 @@ class ThemeManagementTest(TestCase):
         )
         assert editable_response.status_code == 302
         version.refresh_from_db()
-        assert version.version == "1.0.1"
+        assert version.version == "1.0.2"
 
     def test_admin_can_preview_saved_theme_in_both_display_modes(self):
         self.client.force_login(self.admin)
@@ -341,12 +352,16 @@ class ThemeManagementTest(TestCase):
                 assert response.status_code == 200
                 self.assertContains(response, error)
 
-    def test_editor_accepts_font_assets_and_bumps_active_package_version(self):
+    def test_editor_adds_font_to_active_package_and_pushes_reload(self):
         self.client.force_login(self.admin)
         self.client.post(
             "/core/themes/", {"action": "upload", "package": theme_package()}
         )
         version = DisplayThemeVersion.objects.get(slug="uploaded-east")
+        self.client.post(
+            "/core/themes/", {"action": "activate-version", "version_id": version.pk}
+        )
+        initial_generation = Settings.get_settings().theme_reload_generation
         font = b"\x00\x01\x00\x00theme-font"
         response = self.client.post(
             f"/core/themes/{version.pk}/edit/",
@@ -375,15 +390,11 @@ class ThemeManagementTest(TestCase):
         assert saved.status_code == 302
         version.refresh_from_db()
         assert version.version == "1.0.1"
-
-        self.client.post(
-            "/core/themes/",
-            {"action": "activate-version", "version_id": version.pk},
-        )
         settings = self.client.get(
             "/api/v1/settings/1/", HTTP_X_API_TOKEN="display-token"
         )
         assert settings.json()["overlay_theme_package"]["version"] == "1.0.1"
+        assert Settings.get_settings().theme_reload_generation == initial_generation + 1
 
     @staticmethod
     def _font_manifest(
