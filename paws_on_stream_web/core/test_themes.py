@@ -13,7 +13,7 @@ from core import themes
 
 class ThemeValidationTest(TestCase):
     def tearDown(self):
-        themes._load_display_theme.cache_clear()
+        themes.clear_theme_cache()
 
     def _package(self, root, *, mutate=None):
         package = Path(root) / "test-theme"

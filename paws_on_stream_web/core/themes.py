@@ -328,12 +328,17 @@ def theme_asset_content_type(asset):
     return "image/png"
 
 
-@lru_cache(maxsize=16)
 def _load_display_theme(name):
     normalized = _normalize_theme_name(name)
     uploaded = _load_uploaded_theme(normalized)
     if uploaded is not None:
         return uploaded
+    return _load_builtin_display_theme(normalized)
+
+
+@lru_cache(maxsize=16)
+def _load_builtin_display_theme(name):
+    normalized = _normalize_theme_name(name)
     path = _theme_path(normalized)
     theme = _read_json(path)
     schema_version = theme.get("schema_version")
@@ -410,7 +415,7 @@ def get_theme_asset(theme_name, asset_id):
 
 
 def clear_theme_cache():
-    _load_display_theme.cache_clear()
+    _load_builtin_display_theme.cache_clear()
 
 
 def available_theme_choices():

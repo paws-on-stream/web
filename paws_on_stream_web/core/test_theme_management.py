@@ -128,6 +128,7 @@ class ThemeManagementTest(TestCase):
             "/api/v1/themes/uploaded-east/", HTTP_X_API_TOKEN="display-token"
         )
         assert manifest.status_code == 200
+        assert manifest["Cache-Control"] == "no-store"
         assert manifest.json()["assets"]["frame"]["url"].endswith(
             "/api/v1/themes/uploaded-east/1.0.0/assets/frame/"
         )

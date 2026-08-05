@@ -261,7 +261,10 @@ def display_theme_api(request, name):  # noqa: ARG001
         route_name="display_theme_asset_api",
     )
     response = JsonResponse(theme)
-    response["Cache-Control"] = "public, max-age=300"
+    # The URL is stable while an uploaded theme's semantic version changes.
+    # Caching this document can therefore make a display combine the package
+    # version from settings with a manifest from a previous version.
+    response["Cache-Control"] = "no-store"
     return response
 
 
