@@ -1,5 +1,9 @@
+from datetime import timedelta
+
+from core.factories import SettingsFactory
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from participants.factories import ParticipantFactory
 from streaming.factories import EventFactory, TextMessageFactory
 from streaming.models import Message
@@ -162,6 +166,79 @@ class DashboardViewTest(TestCase):
         self.client.logout()
         response = self.client.get("/live/")
         assert response.status_code == 403
+
+    def test_system_status_reports_active_event_state(self):
+        SettingsFactory(bot_status="online", require_event_active=True)
+        EventFactory(
+            is_active=True,
+            allow_messages=True,
+            display_mode="crawling",
+            starts_at=timezone.now() - timedelta(minutes=5),
+            ends_at=timezone.now() + timedelta(minutes=5),
+        )
+
+        response = self.client.get("/status/")
+
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"].startswith("max-age=0")
+        assert response.json() == {
+            "bot_status": "online",
+            "display_mode": "crawling",
+            "display_mode_source": "event",
+            "messages_accepted": True,
+            "messages_reason": "Bot ist online.",
+        }
+
+    def test_system_status_reports_disabled_active_event_messages(self):
+        SettingsFactory(bot_status="online", require_event_active=True)
+        EventFactory(
+            is_active=True,
+            allow_messages=False,
+            starts_at=timezone.now() - timedelta(minutes=5),
+            ends_at=timezone.now() + timedelta(minutes=5),
+        )
+
+        response = self.client.get("/status/")
+
+        assert response.status_code == 200
+        assert response.json()["messages_accepted"] is False
+        assert "deaktiviert" in response.json()["messages_reason"]
+
+    def test_system_status_requires_an_active_event_when_configured(self):
+        SettingsFactory(bot_status="online", require_event_active=True)
+
+        response = self.client.get("/status/")
+
+        assert response.status_code == 200
+        assert response.json()["messages_accepted"] is False
+        assert response.json()["messages_reason"] == "Kein aktives Event."
+
+    def test_system_status_reports_bot_maintenance_as_message_pause(self):
+        SettingsFactory(bot_status="maintenance", require_event_active=False)
+
+        response = self.client.get("/status/")
+
+        assert response.status_code == 200
+        assert response.json()["messages_accepted"] is False
+        assert response.json()["messages_reason"] == "Bot ist in Wartung."
+
+    def test_system_status_requires_staff(self):
+        self.client.logout()
+        response = self.client.get("/status/")
+        assert response.status_code == 403
+
+    def test_system_status_rejects_non_staff_users(self):
+        self.client.force_login(get_user_model().objects.create_user("non-staff"))
+        response = self.client.get("/status/")
+        assert response.status_code == 403
+
+    def test_base_template_includes_live_system_status(self):
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert 'id="system-status"' in content
+        assert 'id="system-status-messages"' in content
+        assert "dashboard:system_status" not in content
+        assert "/status/" in content
 
     def test_json_message_action_returns_without_redirect(self):
         response = self.client.post(

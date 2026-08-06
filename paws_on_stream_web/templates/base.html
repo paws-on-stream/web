@@ -53,6 +53,11 @@
   <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6 text-white" href="#">Paws on Stream</a>
   <div class="ms-auto d-flex align-items-center">
     {% if request.user.is_authenticated and request.user.is_staff %}
+      <div class="d-flex flex-wrap justify-content-end gap-1 me-2 small" id="system-status" aria-live="polite">
+        <span class="badge text-bg-secondary" id="system-status-bot">System: lädt…</span>
+        <span class="badge text-bg-secondary" id="system-status-mode">Modus: lädt…</span>
+        <span class="badge text-bg-secondary" id="system-status-messages">Nachrichten: lädt…</span>
+      </div>
       <a class="btn btn-sm btn-outline-light me-2" href="{% url 'web_display' %}" title="Web Display öffnen">
         <i class="bi bi-display" aria-hidden="true"></i>
         <span class="d-none d-sm-inline ms-1">Web Display öffnen</span>
@@ -190,6 +195,59 @@
   </div>
 </div>
 <script src="{% static 'js/app.js' %}"></script>
+{% if request.user.is_authenticated and request.user.is_staff %}
+<script>
+  (() => {
+    const container = document.querySelector('#system-status');
+    const bot = document.querySelector('#system-status-bot');
+    const mode = document.querySelector('#system-status-mode');
+    const messages = document.querySelector('#system-status-messages');
+    const botLabels = { online: 'Online', offline: 'Offline', maintenance: 'Wartung' };
+    const modeLabels = { chat: 'Chat', crawling: 'Crawling' };
+    const botClasses = { online: 'text-bg-success', offline: 'text-bg-danger', maintenance: 'text-bg-warning' };
+
+    function setBadge(element, text, className, title = '') {
+      element.textContent = text;
+      element.className = `badge ${className}`;
+      element.title = title;
+    }
+
+    function render(payload) {
+      setBadge(bot, `System: ${botLabels[payload.bot_status] || 'Unbekannt'}`, botClasses[payload.bot_status] || 'text-bg-secondary');
+      setBadge(mode, `Modus: ${modeLabels[payload.display_mode] || 'Unbekannt'}`, 'text-bg-info');
+      setBadge(
+        messages,
+        `Nachrichten: ${payload.messages_accepted ? 'aktiv' : 'pausiert'}`,
+        payload.messages_accepted ? 'text-bg-success' : 'text-bg-danger',
+        payload.messages_reason || ''
+      );
+      container.classList.remove('opacity-75');
+      container.title = '';
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch('{% url "dashboard:system_status" %}', {
+          headers: { 'Accept': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Statusaktualisierung fehlgeschlagen');
+        render(await response.json());
+      } catch (error) {
+        container.classList.add('opacity-75');
+        container.title = 'Statusaktualisierung fehlgeschlagen; letzter Stand wird angezeigt.';
+      }
+    }
+
+    refresh();
+    window.setInterval(() => {
+      if (!document.hidden) refresh();
+    }, 15000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refresh();
+    });
+  })();
+</script>
+{% endif %}
 <script>
   document.addEventListener("change", function (event) {
     const target = event.target;

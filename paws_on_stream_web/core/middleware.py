@@ -37,6 +37,7 @@ class DashboardLoginRequiredMiddleware:
         "/metrics/",
         "/monitor/",
         "/live/",
+        "/status/",
         "/static/",
     )
 

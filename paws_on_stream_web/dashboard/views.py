@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 
+from core.effective_display import get_effective_display_settings
 from core.models import DisplayDevice, Settings
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -119,9 +120,7 @@ def _dashboard_payload(request):
         .select_related("participant", "event", "media_asset")
         .order_by("-created_at")[:50]
     )
-    messages = MessageSerializer(
-        queue, many=True, context={"request": request}
-    ).data
+    messages = MessageSerializer(queue, many=True, context={"request": request}).data
     for serialized_message, message in zip(messages, queue, strict=True):
         serialized_message["event_name"] = message.event.name if message.event else ""
     approved_queue = (
@@ -175,6 +174,45 @@ def dashboard_live(request):
     if not request.user.is_authenticated or not request.user.is_staff:
         return HttpResponseForbidden("Staff login required.")
     return JsonResponse(_dashboard_payload(request))
+
+
+def _system_status_payload() -> dict:
+    """Return the global state that determines whether messages are accepted."""
+    app_settings = Settings.get_settings()
+    effective_display = get_effective_display_settings(app_settings)
+    active_event = effective_display.event
+
+    messages_accepted = app_settings.bot_status == "online"
+    messages_reason = "Bot ist online."
+    if app_settings.bot_status == "maintenance":
+        messages_accepted = False
+        messages_reason = "Bot ist in Wartung."
+    elif app_settings.bot_status == "offline":
+        messages_accepted = False
+        messages_reason = "Bot ist offline."
+    elif app_settings.require_event_active and active_event is None:
+        messages_accepted = False
+        messages_reason = "Kein aktives Event."
+    elif app_settings.require_event_active and not active_event.allow_messages:
+        messages_accepted = False
+        messages_reason = "Nachrichten sind für das aktive Event deaktiviert."
+
+    return {
+        "bot_status": app_settings.bot_status,
+        "display_mode": effective_display.display_mode,
+        "display_mode_source": effective_display.display_mode_source,
+        "messages_accepted": messages_accepted,
+        "messages_reason": messages_reason,
+    }
+
+
+@require_GET
+@never_cache
+def system_status(request):
+    """Staff-only, lightweight status for the global navigation."""
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return HttpResponseForbidden("Staff login required.")
+    return JsonResponse(_system_status_payload())
 
 
 def messages_page(request):
