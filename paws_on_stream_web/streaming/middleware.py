@@ -60,6 +60,8 @@ class ApiTokenMiddleware:
             and request.path == "/api/v1/settings/effective-display-mode/"
         ):
             return True
+        if request.path == "/api/v1/bot/status/" and request.method in {"GET", "PUT"}:
+            return True
         prefixes = (
             "/api/v1/message/",
             "/api/v1/media/upload/",

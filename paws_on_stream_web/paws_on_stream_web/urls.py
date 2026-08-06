@@ -31,6 +31,7 @@ from core.monitor_views import (
     web_display_theme_asset,
 )
 from core.views import (
+    BotStatusAPIView,
     DisplayDeviceViewSet,
     DisplayLogViewSet,
     HealthAPIView,
@@ -73,6 +74,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/health/", HealthAPIView.as_view()),
     path("api/v1/readiness/", ReadinessAPIView.as_view()),
+    path("api/v1/bot/status/", BotStatusAPIView.as_view()),
     path("api/v1/themes/<slug:name>/", display_theme_api, name="display_theme_api"),
     path(
         "api/v1/themes/<slug:name>/<str:version>/assets/<slug:asset_id>/",

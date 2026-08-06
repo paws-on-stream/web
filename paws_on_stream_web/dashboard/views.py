@@ -2,8 +2,8 @@
 
 from datetime import timedelta
 
-from core.effective_display import get_effective_display_settings
 from core.models import DisplayDevice, Settings
+from core.runtime_status import get_runtime_status
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -178,31 +178,21 @@ def dashboard_live(request):
 
 def _system_status_payload() -> dict:
     """Return the global state that determines whether messages are accepted."""
-    app_settings = Settings.get_settings()
-    effective_display = get_effective_display_settings(app_settings)
-    active_event = effective_display.event
-
-    messages_accepted = app_settings.bot_status == "online"
-    messages_reason = "Bot ist online."
-    if app_settings.bot_status == "maintenance":
-        messages_accepted = False
-        messages_reason = "Bot ist in Wartung."
-    elif app_settings.bot_status == "offline":
-        messages_accepted = False
-        messages_reason = "Bot ist offline."
-    elif app_settings.require_event_active and active_event is None:
-        messages_accepted = False
-        messages_reason = "Kein aktives Event."
-    elif app_settings.require_event_active and not active_event.allow_messages:
-        messages_accepted = False
-        messages_reason = "Nachrichten sind für das aktive Event deaktiviert."
+    runtime_status = get_runtime_status()
+    messages_labels = {
+        None: "Bot ist online.",
+        "maintenance": "Bot ist in Wartung.",
+        "offline": "Bot ist offline.",
+        "no_event": "Kein aktives Event.",
+        "messages_disabled": "Nachrichten sind für das aktive Event deaktiviert.",
+    }
 
     return {
-        "bot_status": app_settings.bot_status,
-        "display_mode": effective_display.display_mode,
-        "display_mode_source": effective_display.display_mode_source,
-        "messages_accepted": messages_accepted,
-        "messages_reason": messages_reason,
+        "bot_status": runtime_status.app_settings.bot_status,
+        "display_mode": runtime_status.display_mode,
+        "display_mode_source": runtime_status.display_mode_source,
+        "messages_accepted": runtime_status.messages_accepted,
+        "messages_reason": messages_labels[runtime_status.messages_reason],
     }
 
 

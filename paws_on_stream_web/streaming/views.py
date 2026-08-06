@@ -5,6 +5,7 @@ from uuid import UUID
 
 from core.auth import StaffRequiredMixin
 from core.models import DisplayDevice, DisplayLog, Settings
+from core.runtime_status import get_runtime_status
 from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -141,42 +142,25 @@ class MessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if settings.bot_status != "online":
+        runtime_status = get_runtime_status(settings)
+        if not runtime_status.messages_accepted:
+            rejection_messages = {
+                "offline": "Bot is offline.",
+                "maintenance": "Bot is in maintenance.",
+                "no_event": "No active event.",
+                "messages_disabled": "Messages are disabled for the active event.",
+            }
             return Response(
                 {
                     "status": "rejected",
-                    "reason": "offline",
-                    "message": "Bot is offline.",
+                    "reason": runtime_status.messages_reason,
+                    "message": rejection_messages[runtime_status.messages_reason],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if settings.require_event_active:
-            now = timezone.now()
-            active_event = Event.objects.filter(
-                is_active=True,
-                starts_at__lte=now,
-                ends_at__gte=now,
-            ).first()
-            if not active_event:
-                return Response(
-                    {
-                        "status": "rejected",
-                        "reason": "no_event",
-                        "message": "No active event.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if not active_event.allow_messages:
-                return Response(
-                    {
-                        "status": "rejected",
-                        "reason": "messages_disabled",
-                        "message": "Messages are disabled for the active event.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            data["event"] = active_event.id
+            data["event"] = runtime_status.active_event.id
 
         media_asset_id = data.get("media_asset_id")
         if media_asset_id:

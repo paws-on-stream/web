@@ -147,6 +147,7 @@ class Message(models.Model):
     REJECTION_REASONS = [
         ("no_event", "No active event"),
         ("messages_disabled", "Messages disabled for active event"),
+        ("maintenance", "Bot maintenance"),
         ("unknown", "Unknown participant"),
         ("not_checkedin", "Not checked in"),
         ("banned", "Banned"),

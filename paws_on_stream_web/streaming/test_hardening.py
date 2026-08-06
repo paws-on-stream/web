@@ -48,6 +48,30 @@ class MessageBusinessRulesTest(TestCase):
         )
         assert self.post_message().json()["reason"] == "messages_disabled"
 
+    def test_active_event_disabling_messages_overrides_optional_event_requirement(self):
+        self.settings.require_event_active = False
+        self.settings.save(update_fields=["require_event_active"])
+        EventFactory(
+            is_active=True,
+            allow_messages=False,
+            starts_at=timezone.now() - timedelta(hours=1),
+            ends_at=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.post_message()
+
+        assert response.status_code == 400
+        assert response.json()["reason"] == "messages_disabled"
+
+    def test_rejects_maintenance_with_distinct_reason(self):
+        self.settings.bot_status = "maintenance"
+        self.settings.save(update_fields=["bot_status"])
+
+        response = self.post_message()
+
+        assert response.status_code == 400
+        assert response.json()["reason"] == "maintenance"
+
     def test_client_cannot_preapprove_message(self):
         EventFactory(
             is_active=True,

@@ -47,6 +47,7 @@ from core.models import (
     TelegramAccess,
     WebDisplayAccess,
 )
+from core.runtime_status import get_runtime_status
 from core.serializers import (
     DisplayDeviceSerializer,
     DisplayLogSerializer,
@@ -132,6 +133,52 @@ class SettingsViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class BotStatusAPIView(APIView):
+    """Narrow bot-token API for the authoritative runtime status."""
+
+    def get_throttles(self):
+        return []
+
+    @staticmethod
+    def _payload():
+        runtime_status = get_runtime_status()
+        active_event = runtime_status.active_event
+        return {
+            "bot_status": runtime_status.app_settings.bot_status,
+            "messages_accepted": runtime_status.messages_accepted,
+            "messages_reason": runtime_status.messages_reason,
+            "display_mode": runtime_status.display_mode,
+            "active_event": (
+                {
+                    "id": active_event.id,
+                    "name": active_event.name,
+                    "allow_messages": active_event.allow_messages,
+                    "starts_at": active_event.starts_at.isoformat(),
+                    "ends_at": active_event.ends_at.isoformat(),
+                }
+                if active_event
+                else None
+            ),
+        }
+
+    def get(self, request):  # noqa: ARG002
+        return Response(self._payload())
+
+    def put(self, request):
+        bot_status = request.data.get("bot_status")
+        valid_statuses = {value for value, _ in Settings.BOT_STATUSES}
+        if bot_status not in valid_statuses:
+            return Response(
+                {"bot_status": ["Unsupported bot status."]},
+                status=400,
+            )
+        app_settings = Settings.get_settings()
+        if app_settings.bot_status != bot_status:
+            app_settings.bot_status = bot_status
+            app_settings.save(update_fields=["bot_status", "updated_at"])
+        return Response(self._payload())
 
 
 class HealthAPIView(APIView):
